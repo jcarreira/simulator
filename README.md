@@ -1,6 +1,11 @@
 YAPS = Yet Another Packet Simulator
 ==================================
 
+How to run 
+---------------------------
+* [joao@f1:/nscratch/joao/repos/simulator/py]% ../simulator 1 conf_joao.txt > ttt
+
+
 Core stuff is in `coresim/` 
 ---------------------------
 Normally these files shouldn't change. This directory includes implementations of the following:
