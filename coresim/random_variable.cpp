@@ -94,6 +94,8 @@ int EmpiricalRandomVariable::lookup(double u) {
 
 int EmpiricalRandomVariable::loadCDF(std::string filename) {
   std::string line;
+
+  std::cerr << "Opening " << filename << std::endl;
   std::ifstream myfile(filename);
   assert(myfile.good());
   numEntry_ = 0;

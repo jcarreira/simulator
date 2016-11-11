@@ -17,6 +17,7 @@ class PacketPropagationEvent;
 class Queue {
     public:
         Queue(uint32_t id, double rate, uint32_t limit_bytes, int location);
+        virtual ~Queue() {}
         void set_src_dst(Node *src, Node *dst);
         virtual void enque(Packet *packet);
         virtual Packet *deque();
@@ -24,6 +25,35 @@ class Queue {
         double get_transmission_delay(uint32_t size);
         void preempt_current_transmission();
 
+        uint64_t getSprayCounter() const { return spray_counter; }
+        void incSprayCounter() { spray_counter++; }
+        double getPropagationDelay() const { return propagation_delay; }
+        uint64_t getPacketDepartures() const { return p_departures; }
+        uint64_t getSizeDepartures() const { return b_departures; }
+        uint64_t getPacketDrop() const { return pkt_drop; }
+        int getLocation() const { return location; }
+
+        Packet* getPacketTransmitting() const { return packet_transmitting; }
+        Packet* setPacketTransmitting(Packet* p) {
+            packet_transmitting = p;
+            return p;
+        }
+        
+        std::vector<Event*>& getBusyEvents() { return busy_events; }
+        Node* getDst() { return dst; }
+        Node* getSrc() { return src; }
+
+        double getRate() const { return rate; }
+        bool& getBusy() { return busy; }
+        uint32_t getBytesInQueue() const { return bytes_in_queue; }
+        QueueProcessingEvent* getQueueProcEvent() { return queue_proc_event; }
+        QueueProcessingEvent* setQueueProcEvent(QueueProcessingEvent* qe) {
+            queue_proc_event = qe;
+            return queue_proc_event;
+        }
+        uint32_t getLimitBytes() const { return limit_bytes; }
+        static void setInstanceCount(uint32_t count) { instance_count = count; }
+    protected:
         // Members
         uint32_t id;
         uint32_t unique_id;
@@ -51,6 +81,14 @@ class Queue {
         uint64_t spray_counter;
 
         int location;
+};
+
+class StaticQueue : public Queue {
+
+};
+
+class SharedQueue : public Queue {
+
 };
 
 

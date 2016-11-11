@@ -143,7 +143,7 @@ void FastpassArbiter::schedule_epoch() {
         }
     }
 
-    assert(this->queue->limit_bytes - this->queue->bytes_in_queue >= 144 * 40);
+    assert(this->queue->getLimitBytes() - this->queue->getBytesInQueue() >= 144 * 40);
 
     for(int i = 0; i < params.num_hosts; i++)
     {

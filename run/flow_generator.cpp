@@ -105,6 +105,9 @@ FlowReader::FlowReader(uint32_t num_flows, Topology *topo, std::string filename)
 void FlowReader::make_flows() {
     std::ifstream input(filename);
     std::string line;
+
+    std::cout << "Running FlowReader::make_flows" << std::endl;
+
     while (std::getline(input, line)) {
         std::istringstream iss(line);
         double start_time, temp;
@@ -120,7 +123,7 @@ void FlowReader::make_flows() {
         size = (uint32_t) (params.mss * size);
         assert(size > 0);
 
-        std::cout << "Flow " << id << " " << start_time << " " << size << " " << s << " " << d << "\n";
+        std::cout << "Specific Flow " << id << " " << start_time << " " << size << " " << s << " " << d << "\n";
         flows_to_schedule.push_back(
             Factory::get_flow(id, start_time, size, topo->hosts[s], topo->hosts[d], params.flow_type)
         );

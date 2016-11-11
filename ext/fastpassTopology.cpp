@@ -36,7 +36,7 @@ FastpassTopology::FastpassTopology(
     this->core_switches.clear();
     this->switches.clear();
     this->hosts.clear();
-    Queue::instance_count = 0;
+    Queue::setInstanceCount(0);
 
     uint32_t hosts_per_agg_switch = num_hosts / num_agg_switches;
     //std::cout << "\n\n" << hosts_per_agg_switch << "\n\n";
@@ -112,20 +112,20 @@ FastpassTopology::FastpassTopology(
 
     for (auto s = this->switches.begin(); s != this->switches.end(); s++) {
         for (auto q = (*s)->queues.begin(); q != (*s)->queues.end(); q++) {
-            assert((*q)->src == (*s));
-            assert((*q)->src != NULL && (*q)->dst != NULL);
+            assert((*q)->getSrc() == (*s));
+            assert((*q)->getSrc() != NULL && (*q)->getDst() != NULL);
         }
     }
 }
 
 Queue* FastpassTopology::get_next_hop(Packet* p, Queue* q) {
-    if (q->dst->type == HOST) {
+    if (q->getDst()->type == HOST) {
         return NULL; // Packet Arrival
     }
 
     // At host level
-    if (q->src->type == HOST) { // Same Rack or not
-        assert (p->src->id == q->src->id);
+    if (q->getSrc()->type == HOST) { // Same Rack or not
+        assert (p->src->id == q->getSrc()->id);
 
         if (p->src->id / 16 == p->dst->id / 16 ||
                 (
@@ -133,33 +133,35 @@ Queue* FastpassTopology::get_next_hop(Packet* p, Queue* q) {
                  (p->dst->host_type == FASTPASS_ARBITER && p->src->id / 16 == 0)
                 )
            ) {
-            return ((Switch *) q->dst)->queues[p->dst->id % 16];
+            return ((Switch *) q->getDst())->queues[p->dst->id % 16];
         } 
         else {
             uint32_t hash_port = 0;
-            if(params.load_balancing == 0)
-                hash_port = q->spray_counter++%4;
+            if(params.load_balancing == 0) {
+                hash_port = q->getSprayCounter() % 4;
+                q->incSprayCounter();
+            }
             else if(params.load_balancing == 1)
                 hash_port = (p->src->id + p->dst->id + p->flow->id) % 4;
-            return ((Switch *) q->dst)->queues[16 + hash_port];
+            return ((Switch *) q->getDst())->queues[16 + hash_port];
         }
     }
 
     // At switch level
-    if (q->src->type == SWITCH) {
-        if (((Switch *) q->src)->switch_type == AGG_SWITCH) {
+    if (q->getSrc()->type == SWITCH) {
+        if (((Switch *) q->getSrc())->switch_type == AGG_SWITCH) {
             if (p->dst->host_type == FASTPASS_ARBITER)
-                return ((Switch *) q->dst)->queues[0];
+                return ((Switch *) q->getDst())->queues[0];
             else
-                return ((Switch *) q->dst)->queues[p->dst->id / 16];
+                return ((Switch *) q->getDst())->queues[p->dst->id / 16];
         }
-        if (((Switch *) q->src)->switch_type == CORE_SWITCH) {
+        if (((Switch *) q->getSrc())->switch_type == CORE_SWITCH) {
             if (p->dst->host_type == FASTPASS_ARBITER) {
-                assert(((Switch*)q->dst)->id == 0);
-                return ((FastpassAggSwitch *) q->dst)->queue_to_arbiter;
+                assert(((Switch*)q->getDst())->id == 0);
+                return ((FastpassAggSwitch *) q->getDst())->queue_to_arbiter;
             }
             else
-                return ((Switch *) q->dst)->queues[p->dst->id % 16];
+                return ((Switch *) q->getDst())->queues[p->dst->id % 16];
         }
     }
 

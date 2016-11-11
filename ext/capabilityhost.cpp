@@ -100,7 +100,7 @@ void CapabilityHost::start_capability_flow(CapabilityFlow* f) {
             << get_current_time() 
             << " flow " << f->id 
             << " src " << this->id
-            << " curr q size " << this->queue->bytes_in_queue 
+            << " curr q size " << this->queue->getBytesInQueue() 
             << " num flows " << this->active_receiving_flows.size() <<"\n";
 
     this->active_sending_flows.push(f);
@@ -117,14 +117,14 @@ void CapabilityHost::schedule_host_proc_evt(){
 
     double qpe_time = 0;
     double td_time = 0;
-    if(this->queue->busy){
-        qpe_time = this->queue->queue_proc_event->time;
+    if(this->queue->getBusy()){
+        qpe_time = this->queue->getQueueProcEvent()->time;
     }
     else{
         qpe_time = get_current_time();
     }
 
-    uint32_t queue_size = this->queue->bytes_in_queue;
+    uint32_t queue_size = this->queue->getBytesInQueue();
     td_time = this->queue->get_transmission_delay(queue_size);
 
     this->host_proc_event = new HostProcessingEvent(qpe_time + td_time + INFINITESIMAL_TIME, this);
@@ -151,7 +151,7 @@ void CapabilityHost::send(){
     assert(this->host_proc_event == NULL);
 
 
-    if(this->queue->busy)
+    if(this->queue->getBusy())
     {
         schedule_host_proc_evt();
     }

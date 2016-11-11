@@ -52,7 +52,7 @@ void SchedulingHost::send() {
         return;
     }
 
-    if (!this->queue->busy) {
+    if (!this->queue->getBusy()) {
         while (!this->sending_flows.empty() && (this->sending_flows.top())->finished) {
             this->sending_flows.pop();    
         }
@@ -62,8 +62,8 @@ void SchedulingHost::send() {
         (this->sending_flows.top())->send_pending_data();
     }
     else {
-        QueueProcessingEvent *qpe = this->queue->queue_proc_event;
-        uint32_t queue_size = this->queue->bytes_in_queue;
+        QueueProcessingEvent *qpe = this->queue->getQueueProcEvent();
+        uint32_t queue_size = this->queue->getBytesInQueue();
         double td = this->queue->get_transmission_delay(queue_size);
         this->host_proc_event = new HostProcessingEvent(qpe->time + td, this);
         add_to_event_queue(this->host_proc_event);

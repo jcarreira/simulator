@@ -17,6 +17,7 @@ extern uint32_t max_outstanding_packets;
 extern uint32_t duplicated_packets_received;
 
 Flow::Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d) {
+    std::cout << "Creating flow id: " << id << std::endl;
     this->id = id;
     this->start_time = start_time;
     this->finish_time = 0;
@@ -64,6 +65,8 @@ void Flow::start_flow() {
 }
 
 void Flow::send_pending_data() {
+    std::cout << "send_pending_data received_bytes: " << 
+        received_bytes << " size: " << size << std::endl;
     if (received_bytes < size) {
         uint32_t seq = next_seq_no;
         uint32_t window = cwnd_mss * mss + scoreboard_sack_bytes;
@@ -84,6 +87,9 @@ void Flow::send_pending_data() {
 
 Packet *Flow::send(uint32_t seq) {
     Packet *p = NULL;
+
+    std::cout << "send. time: " << get_current_time() << " us "
+        << get_current_time()*1e6 << " s" << std::endl;
 
     uint32_t priority = get_priority(seq);
     p = new Packet(
@@ -176,6 +182,8 @@ void Flow::receive_data_pkt(Packet* p) {
     received_count++;
     total_queuing_time += p->total_queuing_delay;
 
+    std::cout << "receive_data_pkt. time: " << get_current_time() << " us "
+        << get_current_time()*1e6 << " s" << std::endl;
     if (received.count(p->seq_no) == 0) {
         received[p->seq_no] = true;
         if(num_outstanding_packets >= ((p->size - hdr_size) / (mss)))

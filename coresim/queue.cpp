@@ -60,6 +60,14 @@ void Queue::set_src_dst(Node *src, Node *dst) {
 }
 
 void Queue::enque(Packet *packet) {
+    std::cout << "Queue enque. id: " << id
+        << " srcId: " << packet->src->id
+       << " destId: " << packet->dst->id << std::endl; 
+
+    if (id == 2) {
+        std::cout << "Buffer size: " << bytes_in_queue << std::endl;
+    }
+
     p_arrivals += 1;
     b_arrivals += packet->size;
     if (bytes_in_queue + packet->size <= limit_bytes) {
@@ -84,6 +92,7 @@ Packet *Queue::deque() {
 }
 
 void Queue::drop(Packet *packet) {
+    std::cerr << "WARNING: Dropping packet" << std::endl;
     packet->flow->pkt_drop++;
     if(packet->seq_no < packet->flow->size){
         packet->flow->data_pkt_drop++;

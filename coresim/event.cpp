@@ -172,22 +172,25 @@ PacketQueuingEvent::~PacketQueuingEvent() {
 }
 
 void PacketQueuingEvent::process_event() {
-    if (!queue->busy) {
-        queue->queue_proc_event = new QueueProcessingEvent(get_current_time(), queue);
-        add_to_event_queue(queue->queue_proc_event);
-        queue->busy = true;
-        queue->packet_transmitting = packet;
-    }
-    else if( params.preemptive_queue && this->packet->pf_priority < queue->packet_transmitting->pf_priority) {
-        double remaining_percentage = (queue->queue_proc_event->time - get_current_time()) / queue->get_transmission_delay(queue->packet_transmitting->size);
+    if (!queue->getBusy()) {
+        queue->setQueueProcEvent(new QueueProcessingEvent(get_current_time(), queue));
+        add_to_event_queue(queue->getQueueProcEvent());
+        queue->getBusy() = true;
+        queue->setPacketTransmitting(packet);
+    } else if (params.preemptive_queue &&
+            this->packet->pf_priority < queue->getPacketTransmitting()->pf_priority) {
+
+        double remaining_percentage =
+            (queue->getQueueProcEvent()->time - get_current_time()) / 
+            queue->get_transmission_delay(queue->getPacketTransmitting()->size);
 
         if(remaining_percentage > 0.01){
             queue->preempt_current_transmission();
 
-            queue->queue_proc_event = new QueueProcessingEvent(get_current_time(), queue);
-            add_to_event_queue(queue->queue_proc_event);
-            queue->busy = true;
-            queue->packet_transmitting = packet;
+            queue->setQueueProcEvent(new QueueProcessingEvent(get_current_time(), queue));
+            add_to_event_queue(queue->getQueueProcEvent());
+            queue->getBusy() = true;
+            queue->setPacketTransmitting(packet);
         }
     }
 
@@ -219,29 +222,34 @@ QueueProcessingEvent::QueueProcessingEvent(double time, Queue *queue)
 }
 
 QueueProcessingEvent::~QueueProcessingEvent() {
-    if (queue->queue_proc_event == this) {
-        queue->queue_proc_event = NULL;
-        queue->busy = false; //TODO is this ok??
+    if (queue->getQueueProcEvent() == this) {
+        queue->setQueueProcEvent(NULL);
+        queue->getBusy() = false; //TODO is this ok??
     }
 }
 
 void QueueProcessingEvent::process_event() {
     Packet *packet = queue->deque();
     if (packet) {
-        queue->busy = true;
-        queue->busy_events.clear();
-        queue->packet_transmitting = packet;
+        queue->setBusy(true);
+        queue->getBusyEvents().clear();
+        queue->setPacketTransmitting(packet);
         Queue *next_hop = topology->get_next_hop(packet, queue);
         double td = queue->get_transmission_delay(packet->size);
-        double pd = queue->propagation_delay;
+        double pd = queue->getPropagationDelay();
         //double additional_delay = 1e-10;
-        queue->queue_proc_event = new QueueProcessingEvent(time + td, queue);
-        add_to_event_queue(queue->queue_proc_event);
-        queue->busy_events.push_back(queue->queue_proc_event);
+            std::cout << "Creating QueueProcessingEvent. time: " << time
+                << " td: " << td << std::endl;
+        queue->setQueueProcEvent(new QueueProcessingEvent(time + td, queue));
+        add_to_event_queue(queue->getQueueProcEvent());
+        queue->getBusyEvents().push_back(queue->getQueueProcEvent());
         if (next_hop == NULL) {
+            std::cout << "Creating PacketArrivalEvent. time: " << time
+                << " td: " << td
+                << " pd: " << pd << std::endl;
             Event* arrival_evt = new PacketArrivalEvent(time + td + pd, packet);
             add_to_event_queue(arrival_evt);
-            queue->busy_events.push_back(arrival_evt);
+            queue->getBusyEvents().push_back(arrival_evt);
         } else {
             Event* queuing_evt = NULL;
             if (params.cut_through == 1) {
@@ -249,17 +257,20 @@ void QueueProcessingEvent::process_event() {
                     queue->get_transmission_delay(packet->flow->hdr_size);
                 queuing_evt = new PacketQueuingEvent(time + cut_through_delay + pd, packet, next_hop);
             } else {
+            std::cout << "Creating PacketQueuingEvent. time: " << time
+                << " td: " << td
+                << " pd: " << pd << std::endl;
                 queuing_evt = new PacketQueuingEvent(time + td + pd, packet, next_hop);
             }
 
             add_to_event_queue(queuing_evt);
-            queue->busy_events.push_back(queuing_evt);
+            queue->getBusyEvents().push_back(queuing_evt);
         }
     } else {
-        queue->busy = false;
-        queue->busy_events.clear();
-        queue->packet_transmitting = NULL;
-        queue->queue_proc_event = NULL;
+        queue->setBusy(false);
+        queue->getBusyEvents().clear();
+        queue->setPacketTransmitting(NULL);
+        queue->setQueueProcEvent(NULL);
     }
 }
 
@@ -299,7 +310,7 @@ void LoggingEvent::process_event() {
    
     uint32_t totalSentFromHosts = 0;
     for (auto h = (topology->hosts).begin(); h != (topology->hosts).end(); h++) {
-        totalSentFromHosts += (*h)->queue->p_departures;
+        totalSentFromHosts += (*h)->queue->getPacketDepartures();
     }
     uint32_t sentInTimeslot = (totalSentFromHosts - sent_packets) / 2;
     uint32_t injectedInTimeslot = arrival_packets_count - injected_packets;

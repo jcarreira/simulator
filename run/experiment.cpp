@@ -102,15 +102,15 @@ void printQueueStatistics(Topology *topo) {
     }
 
     for (uint i = 0; i < topo->hosts.size(); i++) {
-        int location = topo->hosts[i]->queue->location;
-        dropAt[location] += topo->hosts[i]->queue->pkt_drop;
+        int location = topo->hosts[i]->queue->getLocation();
+        dropAt[location] += topo->hosts[i]->queue->getPacketDrop();
     }
 
 
     for (uint i = 0; i < topo->switches.size(); i++) {
         for (uint j = 0; j < topo->switches[i]->queues.size(); j++) {
-            int location = topo->switches[i]->queues[j]->location;
-            dropAt[location] += topo->switches[i]->queues[j]->pkt_drop;
+            int location = topo->switches[i]->queues[j]->getLocation();
+            dropAt[location] += topo->switches[i]->queues[j]->getPacketDrop();
         }
     }
 
@@ -122,7 +122,7 @@ void printQueueStatistics(Topology *topo) {
     }
 
     for (auto h = (topo->hosts).begin(); h != (topo->hosts).end(); h++) {
-        totalSentFromHosts += (*h)->queue->b_departures;
+        totalSentFromHosts += (*h)->queue->getSizeDepartures();
     }
 
     std::cout << " Overall:" << std::setprecision(2) <<(double)total_drop*1460/totalSentFromHosts << "\n";
@@ -130,7 +130,7 @@ void printQueueStatistics(Topology *topo) {
     double totalSentToHosts = 0;
     for (auto tor = (topo->switches).begin(); tor != (topo->switches).end(); tor++) {
         for (auto q = ((*tor)->queues).begin(); q != ((*tor)->queues).end(); q++) {
-            if ((*q)->rate == params.bandwidth) totalSentToHosts += (*q)->b_departures;
+            if ((*q)->getRate() == params.bandwidth) totalSentToHosts += (*q)->getSizeDepartures();
         }
     }
 
@@ -158,18 +158,23 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     }
 
     std::string conf_filename(argv[2]);
+    std::cout << "Reading experiment parameters" << std::endl;
     read_experiment_parameters(conf_filename, exp_type);
+    std::cout << "Number hosts: 144 agg switches: 9 and core switches: 4" << std::endl;
     params.num_hosts = 144;
     params.num_agg_switches = 9;
     params.num_core_switches = 4;
     
     if (params.flow_type == FASTPASS_FLOW) {
+        exit(-1);
         topology = new FastpassTopology(params.num_hosts, params.num_agg_switches, params.num_core_switches, params.bandwidth, params.queue_type);
     }
     else if (params.big_switch) {
+        exit(-1);
         topology = new BigSwitchTopology(params.num_hosts, params.bandwidth, params.queue_type);
     } 
     else {
+        std::cout << "Building PFabric topology. Why?" << std::endl;
         topology = new PFabricTopology(params.num_hosts, params.num_agg_switches, params.num_core_switches, params.bandwidth, params.queue_type);
     }
 
@@ -190,6 +195,7 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     }
     else {
         if (params.traffic_imbalance < 0.01) {
+            std::cout << "Generating flows wiht Poisson generator" << std::endl;
             fg = new PoissonFlowGenerator(num_flows, topology, params.cdf_or_flow_trace);
             fg->make_flows();
         }
@@ -212,6 +218,7 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
         }
     } fc;
 
+    std::cout << "Sorting flows" << std::endl;
     std::sort (flows_sorted.begin(), flows_sorted.end(), fc);
 
     for (uint32_t i = 0; i < flows_sorted.size(); i++) {
@@ -251,7 +258,26 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     // 
     // everything before this is setup; everything after is analysis
     //
+    std::cout << "Running scenario" << std::endl;
+
+    std::cout
+        << "flow>id" << " " 
+        << "flow->size" << " " 
+        << "flow->src->id" << " " 
+        << "flow->dst->id" << " " 
+        << "flow->start_time" << " "                                                          
+        << "flow->finish_time" << " " 
+        << "flow->flow_completion_time" << " " 
+        << "topology->get_oracle_fct(flow)" << " " 
+        << "slowdown" << " " 
+        << "flow->total_pkt_sent" << "/" << "(flow->size/flow->mss)" << "//" << "flow->received_count" << " " 
+        << "flow->data_pkt_drop" << "/" << "flow->ack_pkt_drop" << "/" << "flow->pkt_drop" << " " 
+        << "(flow->first_byte_send_time - flow->start_time)" << " " 
+        << std::endl;
+
+
     run_scenario();
+    std::cout << "scenario done" << std::endl;
 
     //write_flows_to_file(flows_sorted, "flow.tmp");
 

@@ -80,34 +80,36 @@ PFabricTopology::PFabricTopology(
 
 
 Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
-    if (q->dst->type == HOST) {
+    if (q->getDst()->type == HOST) {
         return NULL; // Packet Arrival
     }
 
     // At host level
-    if (q->src->type == HOST) { // Same Rack or not
-        assert (p->src->id == q->src->id);
+    if (q->getSrc()->type == HOST) { // Same Rack or not
+        assert (p->src->id == q->getSrc()->id);
 
         if (p->src->id / 16 == p->dst->id / 16) {
-            return ((Switch *) q->dst)->queues[p->dst->id % 16];
+            return ((Switch *) q->getDst())->queues[p->dst->id % 16];
         } 
         else {
             uint32_t hash_port = 0;
-            if(params.load_balancing == 0)
-                hash_port = q->spray_counter++%4;
+            if(params.load_balancing == 0) {
+                hash_port = q->getSprayCounter() % 4;
+                q->incSprayCounter();
+            }
             else if(params.load_balancing == 1)
                 hash_port = (p->src->id + p->dst->id + p->flow->id) % 4;
-            return ((Switch *) q->dst)->queues[16 + hash_port];
+            return ((Switch *) q->getDst())->queues[16 + hash_port];
         }
     }
 
     // At switch level
-    if (q->src->type == SWITCH) {
-        if (((Switch *) q->src)->switch_type == AGG_SWITCH) {
-            return ((Switch *) q->dst)->queues[p->dst->id / 16];
+    if (q->getSrc()->type == SWITCH) {
+        if (((Switch *) q->getSrc())->switch_type == AGG_SWITCH) {
+            return ((Switch *) q->getDst())->queues[p->dst->id / 16];
         }
-        if (((Switch *) q->src)->switch_type == CORE_SWITCH) {
-            return ((Switch *) q->dst)->queues[p->dst->id % 16];
+        if (((Switch *) q->getSrc())->switch_type == CORE_SWITCH) {
+            return ((Switch *) q->getDst())->queues[p->dst->id % 16];
         }
     }
 
@@ -130,11 +132,11 @@ double PFabricTopology::get_oracle_fct(Flow *f) {
         }
     }
     else {
-        propagation_delay = 2 * 1000000.0 * num_hops * f->src->queue->propagation_delay; //us
+        propagation_delay = 2 * 1000000.0 * num_hops * f->src->queue->getPropagationDelay();
     }
     
     uint32_t np = ceil(f->size / params.mss); // TODO: Must be a multiple of 1460
-    double bandwidth = f->src->queue->rate / 1000000.0; // For us
+    double bandwidth = f->src->queue->getRate() / 1000000.0; // For us
     double transmission_delay;
     if (params.cut_through) {
         transmission_delay = 
@@ -194,14 +196,14 @@ BigSwitchTopology::BigSwitchTopology(
 }
 
 Queue* BigSwitchTopology::get_next_hop(Packet *p, Queue *q) {
-    if (q->dst->type == HOST) {
-        assert(p->dst->id == q->dst->id);
+    if (q->getDst()->type == HOST) {
+        assert(p->dst->id == q->getDst()->id);
         return NULL; // Packet Arrival
     }
 
     // At host level
-    if (q->src->type == HOST) { // Same Rack or not
-        assert (p->src->id == q->src->id);
+    if (q->getSrc()->type == HOST) { // Same Rack or not
+        assert (p->src->id == q->getSrc()->id);
         return the_switch->queues[p->dst->id];
     }
 
@@ -209,10 +211,10 @@ Queue* BigSwitchTopology::get_next_hop(Packet *p, Queue *q) {
 }
 
 double BigSwitchTopology::get_oracle_fct(Flow *f) {
-    double propagation_delay = 2 * 1000000.0 * 2 * f->src->queue->propagation_delay; //us
+    double propagation_delay = 2 * 1000000.0 * 2 * f->src->queue->getPropagationDelay(); //us
 
     uint32_t np = ceil(f->size / params.mss); // TODO: Must be a multiple of 1460
-    double bandwidth = f->src->queue->rate / 1000000.0; // For us
+    double bandwidth = f->src->queue->getRate() / 1000000.0; // For us
     double transmission_delay;
     if (params.cut_through) {
         transmission_delay = 

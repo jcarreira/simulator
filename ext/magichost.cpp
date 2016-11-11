@@ -194,11 +194,11 @@ void MagicHost::send() {
 
 
 
-    if(this->queue->busy){
+    if(this->queue->getBusy()){
         //queue busy, try send later
         if(this->host_proc_event == NULL){
-            QueueProcessingEvent *qpe = this->queue->queue_proc_event;
-            uint32_t queue_size = this->queue->bytes_in_queue;
+            QueueProcessingEvent *qpe = this->queue->getQueueProcEvent();
+            uint32_t queue_size = this->queue->getBytesInQueue();
             double td = this->queue->get_transmission_delay(queue_size);
             this->host_proc_event = new HostProcessingEvent(qpe->time + td + INFINITESIMAL_TIME, this);
             this->is_host_proc_event_a_timeout = false;

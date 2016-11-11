@@ -173,6 +173,9 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         //else if (key == "dctcp_delayed_ack_freq") {
         //    lineStream >> params.dctcp_delayed_ack_freq;
         //}
+        else if (key == "use_shared_queue") {
+            lineStream >> params.use_shared_queue;
+        }
         else {
             std::cout << "Unknown conf param: " << key << " in file: " << conf_filename << "\n";
             assert(false);
