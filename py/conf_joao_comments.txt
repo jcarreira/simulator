@@ -1,0 +1,135 @@
+// this is the congestion window
+// it shows up in Flow.cpp
+init_cwnd: 12
+
+// maximum congestion window. congetsion window
+// never goes above this value
+// used in Flow.cpp
+max_cwnd: 15
+
+// some timeout value 
+retx_timeout: 45e-06
+
+// size of queues
+// shows up in coresim/node.cpp (and others)
+queue_size: 36864
+
+// self explanatory
+propagation_delay: 0.0000002
+
+// self explanatory
+bandwidth: 40000000000.0
+
+// can be one of 4:
+// 1 = DROPTAIL_QUEUE
+// 2 = PFABRIC_QUEUE
+// 3 = PROB_DROP_QUEUE
+// 4 = DCTCP_QUEUE
+queue_type: 1
+
+// can be 1 of 8:
+// 1 = NORMAL_FLOW
+// 2 = PFABRIC_FLOW
+// 3 = VANILLA_TCP_FLOW
+// 4 = DCTCP_FLOW
+// 5 = CAPABILITY_FLOW
+// 6 = MAGIC_FLOW
+// 7 = FASTPASS_FLOW
+// 8 = IDEAL_FLOW
+flow_type: 1
+
+// number of flows
+num_flow: 1000000
+flow_trace: ././CDF_joao.txt
+
+// this shows up in coresim/topology.cpp
+cut_through: 1 ?
+
+// used when generating random flows
+mean_flow_size: 0 ? useless
+
+// apparently only used with Fastpass
+load_balancing: 0 packet spray or flow level ECMP
+
+// when it is 1 packet transmission can be preempted to give
+// way to higher priority packets
+preemptive_queue: 0 set to 0
+
+// 1 means one large big switch
+// 0 means two tier tree
+big_switch: 0 ? 0 means two tier tree, 1 means one larger switch directly conncting all the endhosts
+
+// one of 7 types:
+// 1 = NORMAL_HOST
+// 2 = SCHEDULING_HOST
+// 3 = CAPABILITY_HOST
+// 4 = MAGIC_HOST
+// 5 = FASTPASS_HOST
+// 6 = FASTPASS_ARBITER
+// 7 = IDEAL_HOST
+host_type: 1
+
+// only useful when using flow generators
+// we ignore for now
+traffic_imbalance: 0 set to 0
+
+// some measure of load that I don't understand very well
+load: 0.6 
+
+// some thing used in Magic Host
+reauth_limit: 3 useless
+
+
+magic_trans_slack: 1.1 useless
+magic_delay_scheduling: 1 useless
+
+// these show up in run/experiment.cpp
+// it seems we are going to use a Poisson Flow Generator
+interarrival_cdf: none set to none
+use_flow_trace: 0 set to 0
+
+// probably some sort of linear interpolation
+smooth_cdf: 1 
+
+// used in Poisson Flow Generator
+burst_at_beginning: 0 useless set to 0
+
+// I think this is Phost stuff
+capability_timeout: 1.5 phost only
+capability_resend_timeout: 9
+capability_initial: 8
+capability_window: 8
+capability_window_timeout: 25
+
+// disaggregated datacenter???
+// two types of ddc type:
+// 0 = dc scale
+// !=0 = rackscale
+ddc: 0 useless
+ddc_cpu_ratio: 0.33
+ddc_mem_ratio: 0.33
+ddc_disk_ratio: 0.34
+ddc_normalize: 2
+ddc_type: 0
+
+// priority based schemes used deadlines
+deadline: 0 set to 0
+schedule_by_deadline: 0 set 0 
+avg_deadline: 0.0001
+
+// phost stuff (?)
+capability_third_level: 1 phost only
+capability_fourth_level: 0
+
+// something to do with magic flows
+magic_inflate: 1 useless
+
+// number of hosts
+// This is used in CustomCDFFlowGenerator
+// which I don't think I use
+num_host_types: 13 useless
+
+// PermutationTM is some sort of flow generator
+// we don't care because we use a Poisson generator
+permutation_tm: 0 set to 0
+
