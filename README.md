@@ -11,9 +11,9 @@ How to run
 The simulator can use two topologies: 1 with a big central switch and one with a Fat-tree. The standard fat-tree has 144 nodes. Each set of 16 nodes (ids 0-15 and so on) connect to 1 agg switch (ids from 0 onwards).
 
 I have done some simple tests and results seem reasonable:
-1. increased average FCT in the scenario of many-to-one
-2. in big transfer fct close to theoretical maximum
-3. Have logged buffer occupancy in a single queue and observed the sawtooth (yay)
+* increased average FCT in the scenario of many-to-one
+* in big transfer fct close to theoretical maximum
+* Have logged buffer occupancy in a single queue and observed the sawtooth (yay)
 
 Core stuff is in `coresim/` 
 ---------------------------
