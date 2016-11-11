@@ -13,6 +13,7 @@ The simulator can use two topologies: 1 with a big central switch and one with a
 I have done some simple tests and results seem reasonable:
 1. increased average FCT in the scenario of many-to-one
 2. in big transfer fct close to theoretical maximum
+3. Have logged buffer occupancy in a single queue and observed the sawtooth (yay)
 
 Core stuff is in `coresim/` 
 ---------------------------
