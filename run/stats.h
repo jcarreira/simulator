@@ -17,9 +17,9 @@ private:
 public:
     Stats(bool get_dist = false);
     void input_data(double data);
-    void input_data(int);
-    void operator+=(const double &data);
-    void operator+=(const int &data);
+
+    template<typename T>
+    void operator+=(const T &data) { input_data(data); }
     double avg();
     double size();
     double total();

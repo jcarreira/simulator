@@ -54,6 +54,8 @@ public:
     std::string filename;
 
     FlowGenerator(uint32_t num_flows, Topology *topo, std::string filename);
+    virtual ~FlowGenerator(){}
+
     virtual void write_flows_to_file(std::deque<Flow*> flows, std::string file);
     virtual void make_flows();
 };

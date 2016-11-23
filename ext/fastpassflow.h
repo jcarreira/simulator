@@ -24,7 +24,7 @@ public:
     int sender_remaining_num_pkts;
     std::set<int> sender_acked;
     std::set<int> receiver_received;
-    int sender_acked_count;
+    uint32_t sender_acked_count;
     int sender_acked_until;
     int sender_last_pkt_sent;
     bool sender_finished;

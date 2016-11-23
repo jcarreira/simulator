@@ -19,18 +19,6 @@ void Stats::input_data(double data){
     raw.push_back(data);
 }
 
-void Stats::input_data(int data){
-    input_data((double)data);
-}
-
-void Stats::operator+=(const double &data){
-    input_data(data);
-}
-void Stats::operator+=(const int &data)
-{
-    input_data(data);
-}
-
 
 double Stats::avg(){
     return sum/count;
@@ -57,7 +45,7 @@ double Stats::get_percentile(double p){
     if(raw.size() == 0)
         return -1;
     std::sort(raw.begin(), raw.end());
-    int loc = (int)(p*raw.size());
+    uint32_t loc = (int)(p*raw.size());
     assert(loc >= 0 && loc < raw.size());
     return raw[loc];
 }

@@ -102,6 +102,6 @@ double MagicFlow::estimated_finish_time() {
 }
 
 unsigned MagicFlow::remaining_pkt() {
-    return (uint)std::max((int)size_in_pkt - (int)received_count, (int)0);
+    return (uint)std::max(size_in_pkt - received_count, 0U);
 }
 

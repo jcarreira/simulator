@@ -143,8 +143,8 @@ CustomCDFFlowGenerator::CustomCDFFlowGenerator(
 
 std::vector<EmpiricalRandomVariable*>* CustomCDFFlowGenerator::makeCDFArray(std::string fn_template, std::string filename) {
     auto pairCDFs = new std::vector<EmpiricalRandomVariable*>(params.num_host_types * params.num_host_types);
-    for (auto i = 0; i < params.num_host_types; i++) {
-        for (auto j = 0; j < params.num_host_types; j++) {
+    for (uint32_t i = 0; i < params.num_host_types; i++) {
+        for (uint32_t j = 0; j < params.num_host_types; j++) {
             if (i == j) {
                 pairCDFs->at(params.num_host_types * i + j) = NULL;
                 continue;
@@ -177,7 +177,7 @@ uint32_t* customCdfFlowGenerator_getDestinations_rackscale(uint32_t num_hosts, u
     uint32_t index = 0;
     uint32_t rack_start = sender_id / 16;
     assert(rack_start < num_hosts);
-    for (auto i = 0; i < num_dests + 1; i++) {
+    for (uint32_t i = 0; i < num_dests + 1; i++) {
         if (rack_start * 16 + i == sender_id) continue;
         assert(index <= num_dests + 1);
         dests[index] = rack_start * 16 + i;
@@ -215,16 +215,20 @@ uint32_t* customCdfFlowGenerator_getDestinations_rackscale(uint32_t num_hosts, u
 
 uint32_t* customCdfFlowGenerator_getDestinations_dcscale(uint32_t num_hosts, uint32_t sender_id, uint32_t num_dests, uint32_t **dests_map) {
     if (dests_map[sender_id] == NULL) {
-        auto num_unfilled = 0;
-        for (auto i = 0; i < num_hosts; i++) if (dests_map[i] == NULL) num_unfilled++;
+        uint32_t num_unfilled = 0;
+        for (uint32_t i = 0; i < num_hosts; i++) {
+            if (dests_map[i] == NULL)
+                num_unfilled++;
+        }
+
         if (num_unfilled < num_dests) {
-            return NULL;
+            return nullptr;
         }
 
         auto cluster = new uint32_t[num_dests];
         cluster[0] = sender_id;
         dests_map[sender_id] = cluster;
-        for (auto i = 1; i < num_dests; i++) {
+        for (uint32_t i = 1; i < num_dests; i++) {
             uint32_t ind;
             do {
                 ind = rand() % num_hosts;
@@ -245,7 +249,7 @@ void CustomCDFFlowGenerator::make_flows() {
     uint32_t** clusters;
     if (params.ddc_type == 0) {
         clusters = new uint32_t*[num_hosts];
-        for (auto i = 0; i < num_hosts; i++) {
+        for (uint32_t i = 0; i < num_hosts; i++) {
             clusters[i] = NULL;
         }
     }
@@ -258,6 +262,8 @@ void CustomCDFFlowGenerator::make_flows() {
 
         // select a sender profile randomly, then pick n-1 destinations for each dest.
         uint32_t sender_profile;
+
+        [[maybe_unused]]
         uint32_t* dests;
         if (params.ddc_type != 0) {
             sender_profile = i % params.num_host_types;
@@ -272,7 +278,7 @@ void CustomCDFFlowGenerator::make_flows() {
             }
             
             sender_profile = 0;
-            for (auto t = 0; t < params.num_host_types; t++) {
+            for (uint32_t t = 0; t < params.num_host_types; t++) {
                 if (dests[t] == i) {
                     sender_profile = t;
                 }
@@ -280,7 +286,7 @@ void CustomCDFFlowGenerator::make_flows() {
 
             auto new_dests = new uint32_t[params.num_host_types-1];
             uint32_t t_newdests = 0;
-            for (auto t = 0; t < params.num_host_types; t++) {
+            for (uint32_t t = 0; t < params.num_host_types; t++) {
                 if (dests[t] != i) {
                     new_dests[t_newdests++] = dests[t];
                 }
@@ -289,10 +295,11 @@ void CustomCDFFlowGenerator::make_flows() {
             dests = new_dests;
         }
         
-        for (auto t = 0; t < params.num_host_types - 1; t++) assert(dests[t] < num_hosts);
+        for (uint32_t t = 0; t < params.num_host_types - 1; t++)
+            assert(dests[t] < num_hosts);
 
         if (params.ddc_type != 0) {
-            for (auto d = 0; d < params.num_host_types - 2; d++) {
+            for (uint32_t d = 0; d < params.num_host_types - 2; d++) {
                 if (i / 16 != dests[d] / 16) {
                 //if (i % 16 < params.num_host_types && (i / 16) != (dests[d] / 16)) {
                     std::cout << i << " " << d << " " << dests[d] << "  " << i / 16 << " " << dests[d] / 16 << "\n";
@@ -302,7 +309,7 @@ void CustomCDFFlowGenerator::make_flows() {
         }
 
         std::cout << i << " " << sender_profile << " dests:";
-        for (auto t = 0; t < params.num_host_types - 1; t++) {
+        for (uint32_t t = 0; t < params.num_host_types - 1; t++) {
             std::cout << " " << dests[t];
         }
         std::cout << std::endl;

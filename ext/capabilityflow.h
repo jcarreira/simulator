@@ -39,7 +39,7 @@ public:
     int remaining_pkts();
     void assign_init_capability();
     void set_capability_count();
-    int capability_gap();
+    uint32_t capability_gap();
     void relax_capability_gap();
     int init_capa_size();
     bool has_sibling_idle_source();
@@ -48,7 +48,7 @@ public:
     std::priority_queue<Capability*, std::vector<Capability*>, CapabilityComparator> capabilities;
     std::set<int> packets_received;
     int last_capa_data_seq_num_sent;
-    int received_until;
+    uint32_t received_until;
     bool finished_at_receiver;
     int capability_count;
     int capability_packet_sent_count;

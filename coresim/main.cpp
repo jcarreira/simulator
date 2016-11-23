@@ -97,12 +97,12 @@ void run_scenario() {
         }
         ev->process_event();
 
-        if(last_evt_type == ev->type && last_evt_type != 9)
+        if(last_evt_type == (int)ev->type && last_evt_type != 9)
             same_evt_count++;
         else
             same_evt_count = 0;
 
-        last_evt_type = ev->type;
+        last_evt_type = (int)ev->type;
         
         if(same_evt_count > 100000){
             std::cout << "Ended event dead loop. Type:" << last_evt_type << "\n";

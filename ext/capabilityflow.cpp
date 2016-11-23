@@ -53,7 +53,8 @@ void CapabilityFlow::send_pending_data()
     int capa_data_seq = this->capabilities.top()->data_seq_num;
     int capa_seq = this->use_capability();
 
-    Packet *p = this->send(next_seq_no, capa_seq, capa_data_seq, params.capability_third_level && this->size_in_pkt > params.capability_prio_thresh?2:1);
+    Packet *p = this->send(next_seq_no, capa_seq, capa_data_seq,
+            params.capability_third_level && this->size_in_pkt > params.capability_prio_thresh?2:1);
     next_seq_no += mss;
     if(debug_flow(this->id))
         std::cout << get_current_time() << " flow " << this->id << " send pkt " << this->total_pkt_sent << "\n";
@@ -100,7 +101,7 @@ void CapabilityFlow::receive(Packet *p)
         if(packets_received.count(p->capa_data_seq) == 0){
             packets_received.insert(p->capa_data_seq);
             received_count++;
-            while(received_until < size_in_pkt && packets_received.count(received_until) > 0)
+            while (received_until < size_in_pkt && packets_received.count(received_until) > 0)
             {
                 received_until++;
             }
@@ -248,9 +249,9 @@ void CapabilityFlow::set_capability_count(){
 
 int CapabilityFlow::get_next_capa_seq_num()
 {
-    int count = 0;
-    int data_seq = (last_capa_data_seq_num_sent + 1)%this->size_in_pkt;
-    while(count < this->size_in_pkt)
+    uint32_t count = 0;
+    uint32_t data_seq = (last_capa_data_seq_num_sent + 1)%this->size_in_pkt;
+    while (count < this->size_in_pkt)
     {
         if(packets_received.count(data_seq) == 0)
         {
@@ -341,7 +342,7 @@ int CapabilityFlow::remaining_pkts(){
     return std::max((int)0, (int)(this->size_in_pkt - this->received_count));
 }
 
-int CapabilityFlow::capability_gap(){
+uint32_t CapabilityFlow::capability_gap(){
     assert(this->capability_count - this->largest_cap_seq_received >= 0);
     return this->capability_count - this->largest_cap_seq_received;
 }

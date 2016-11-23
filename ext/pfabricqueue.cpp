@@ -16,9 +16,9 @@ void PFabricQueue::enque(Packet *packet) {
     p_arrivals += 1;
     b_arrivals += packet->size;
     packets.push_back(packet);
-    bytes_in_queue += packet->size;
+    setBytesInQueue(getBytesInQueue() + packet->size);
     packet->last_enque_time = get_current_time();
-    if (bytes_in_queue > limit_bytes) {
+    if (getBytesInQueue() > getLimitBytes()) {
         uint32_t worst_priority = 0;
         uint32_t worst_index = 0;
         for (uint32_t i = 0; i < packets.size(); i++) {
@@ -27,7 +27,7 @@ void PFabricQueue::enque(Packet *packet) {
                 worst_index = i;
             }
         }
-        bytes_in_queue -= packets[worst_index]->size;
+        setBytesInQueue(getBytesInQueue() - packets[worst_index]->size);
         Packet *worst_packet = packets[worst_index];
 
         packets.erase(packets.begin() + worst_index);
@@ -37,7 +37,7 @@ void PFabricQueue::enque(Packet *packet) {
 }
 
 Packet* PFabricQueue::deque() {
-    if (bytes_in_queue > 0) {
+    if (getBytesInQueue() > 0) {
 
         uint32_t best_priority = UINT_MAX;
         Packet *best_packet = NULL;
@@ -59,7 +59,7 @@ Packet* PFabricQueue::deque() {
             }
         }
         Packet *p = packets[best_index];
-        bytes_in_queue -= p->size;
+        setBytesInQueue(getBytesInQueue() - p->size);
         packets.erase(packets.begin() + best_index);
 
         p_departures += 1;

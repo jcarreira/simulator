@@ -124,7 +124,7 @@ void FastpassArbiter::schedule_epoch() {
         return;
 
     std::vector<FastpassEpochSchedule*> schedules;
-    for (uint i = 0; i < params.num_hosts; i++){
+    for (uint32_t i = 0; i < params.num_hosts; i++){
         schedules.push_back(new FastpassEpochSchedule(get_current_time() + params.fastpass_epoch_time));
     }
 
@@ -145,7 +145,7 @@ void FastpassArbiter::schedule_epoch() {
 
     assert(this->queue->getLimitBytes() - this->queue->getBytesInQueue() >= 144 * 40);
 
-    for(int i = 0; i < params.num_hosts; i++)
+    for(uint32_t i = 0; i < params.num_hosts; i++)
     {
         FastpassFlow* f = schedules[i]->get_sender();
         if(f)

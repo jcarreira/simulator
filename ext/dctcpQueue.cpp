@@ -22,9 +22,9 @@ DctcpQueue::DctcpQueue(uint32_t id, double rate, uint32_t limit_bytes, int locat
 void DctcpQueue::enque(Packet *packet) {
     p_arrivals += 1;
     b_arrivals += packet->size;
-    if (bytes_in_queue + packet->size <= limit_bytes) {
+    if (getBytesInQueue() + packet->size <= limit_bytes) {
         packets.push_back(packet);
-        bytes_in_queue += packet->size;
+        setBytesInQueue(getBytesInQueue() + packet->size);
 
         if (packets.size() >= params.dctcp_mark_thresh) {
             ((DctcpPacket*) packet)->ecn = true;

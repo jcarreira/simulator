@@ -108,7 +108,7 @@ void FlowCreationForInitializationEvent::process_event() {
 
 
 /* Flow Arrival */
-int flow_arrival_count = 0;
+uint32_t flow_arrival_count = 0;
 
 FlowArrivalEvent::FlowArrivalEvent(double time, Flow* flow) : Event(FLOW_ARRIVAL, time) {
     this->flow = flow;
@@ -144,7 +144,7 @@ void FlowArrivalEvent::process_event() {
                 }
             }
         }
-        if(flow_arrival_count == (int)(params.num_flows_to_run * 0.5))
+        if(flow_arrival_count == (params.num_flows_to_run * 0.5))
         {
             arrival_packets_at_50 = arrival_packets_count;
             num_outstanding_packets_at_50 = num_outstanding_packets;
@@ -238,15 +238,19 @@ void QueueProcessingEvent::process_event() {
         double td = queue->get_transmission_delay(packet->size);
         double pd = queue->getPropagationDelay();
         //double additional_delay = 1e-10;
+#ifdef DEBUG
             std::cout << "Creating QueueProcessingEvent. time: " << time
                 << " td: " << td << std::endl;
+#endif
         queue->setQueueProcEvent(new QueueProcessingEvent(time + td, queue));
         add_to_event_queue(queue->getQueueProcEvent());
         queue->getBusyEvents().push_back(queue->getQueueProcEvent());
         if (next_hop == NULL) {
+#ifdef DEBUG
             std::cout << "Creating PacketArrivalEvent. time: " << time
                 << " td: " << td
                 << " pd: " << pd << std::endl;
+#endif
             Event* arrival_evt = new PacketArrivalEvent(time + td + pd, packet);
             add_to_event_queue(arrival_evt);
             queue->getBusyEvents().push_back(arrival_evt);
@@ -257,9 +261,11 @@ void QueueProcessingEvent::process_event() {
                     queue->get_transmission_delay(packet->flow->hdr_size);
                 queuing_evt = new PacketQueuingEvent(time + cut_through_delay + pd, packet, next_hop);
             } else {
+#ifdef DEBUG
             std::cout << "Creating PacketQueuingEvent. time: " << time
                 << " td: " << td
                 << " pd: " << pd << std::endl;
+#endif
                 queuing_evt = new PacketQueuingEvent(time + td + pd, packet, next_hop);
             }
 
@@ -295,6 +301,8 @@ void LoggingEvent::process_event() {
     for (uint32_t i = 0; i < flows_to_schedule.size(); i++) {
         Flow *f = flows_to_schedule[i];
         if (finished_simulation && !f->finished) {
+            std::cout << "Flow id: " << f->id << " Not finished" << std::endl;
+            std::cout << (*f) << std::endl;
             finished_simulation = false;
         }
         if (f->start_time < current_time) {

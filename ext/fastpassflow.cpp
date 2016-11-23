@@ -52,14 +52,17 @@ void FastpassFlow::send_schedule_pkt(FastpassEpochSchedule* schd) {
 
 int FastpassFlow::next_pkt_to_send()
 {
-    int pkt = this->sender_last_pkt_sent;
-    for(int i = 0; i < this->size_in_pkt; i++){
+    uint32_t pkt = this->sender_last_pkt_sent;
+    for(uint32_t i = 0; i < this->size_in_pkt; i++){
         pkt++;
         if(pkt >= this->size_in_pkt)
             pkt = sender_acked_until;
         if(sender_acked.count(pkt) == 0)
             return pkt;
     }
+
+    exit(-1);
+    return -1;
 }
 
 void FastpassFlow::send_data_pkt() {
