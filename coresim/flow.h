@@ -2,6 +2,7 @@
 #define FLOW_H
 
 #include <unordered_map>
+#include <iostream>
 #include "node.h"
 
 class Packet;
@@ -60,7 +61,7 @@ class Flow {
         uint32_t max_seq_no_recv;
 
         uint32_t total_pkt_sent;
-        int size_in_pkt;
+        uint32_t size_in_pkt;
         int pkt_drop;
         int data_pkt_drop;
         int ack_pkt_drop;
@@ -79,5 +80,7 @@ class Flow {
         uint32_t flow_priority;
         double deadline;
 };
+
+std::ostream& operator<< (std::ostream& os, const Flow& flow);
 
 #endif

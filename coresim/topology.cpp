@@ -34,12 +34,14 @@ PFabricTopology::PFabricTopology(
         hosts.push_back(Factory::get_host(i, c1, queue_type, params.host_type)); 
     }
 
-    // Create Switches
+    // Create aggregation Switches
     for (uint32_t i = 0; i < num_agg_switches; i++) {
         AggSwitch* sw = new AggSwitch(i, hosts_per_agg_switch, c1, num_core_switches, c2, queue_type);
         agg_switches.push_back(sw); // TODO make generic
         switches.push_back(sw);
     }
+
+    // create core switches
     for (uint32_t i = 0; i < num_core_switches; i++) {
         CoreSwitch* sw = new CoreSwitch(i + num_agg_switches, num_agg_switches, c2, queue_type);
         core_switches.push_back(sw);

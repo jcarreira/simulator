@@ -76,6 +76,8 @@ class DCExpParams {
         //uint32_t dctcp_delayed_ack_freq;
         
         uint32_t use_shared_queue;
+        uint32_t agg_queue_size;
+        uint32_t core_queue_size;
 
         double get_full_pkt_tran_delay(uint32_t size_in_byte = 1500)
         {

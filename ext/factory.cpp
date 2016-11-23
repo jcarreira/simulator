@@ -34,8 +34,10 @@ Queue* Factory::get_queue(
         ) { // Default drop_prob is 0.0
 
     switch(type) {
+        case DROPTAIL_SHARED_QUEUE:
+            return new SharedQueue(id, rate, queue_size, location);
         case DROPTAIL_QUEUE:
-            return new Queue(id, rate, queue_size, location);
+            return new StaticQueue(id, rate, queue_size, location);
         case PFABRIC_QUEUE:
             return new PFabricQueue(id, rate, queue_size, location);
         case PROB_DROP_QUEUE:

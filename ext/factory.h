@@ -10,6 +10,7 @@
 #define PFABRIC_QUEUE 2
 #define PROB_DROP_QUEUE 4
 #define DCTCP_QUEUE 5
+#define DROPTAIL_SHARED_QUEUE 100
 
 /* Flow types */
 #define NORMAL_FLOW 1

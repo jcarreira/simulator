@@ -182,14 +182,18 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
 
     FlowGenerator *fg;
     if (params.use_flow_trace) {
+        std::cout << "Generating traffic with FlowReader" << std::endl;
+        std::cout << "Filename: " << params.cdf_or_flow_trace << std::endl;
         fg = new FlowReader(num_flows, topology, params.cdf_or_flow_trace);
         fg->make_flows();
     }
     else if (params.interarrival_cdf != "none") {
+        std::cout << "Generating traffic with CustomCDFFlowGenerator" << std::endl;
         fg = new CustomCDFFlowGenerator(num_flows, topology, params.cdf_or_flow_trace, params.interarrival_cdf);
         fg->make_flows();
     }
     else if (params.permutation_tm != 0) {
+        std::cout << "Generating traffic with PermutationTM" << std::endl;
         fg = new PermutationTM(num_flows, topology, params.cdf_or_flow_trace);
         fg->make_flows();
     }
@@ -349,8 +353,8 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
         fct += (1000000.0 * f->flow_completion_time);
         oracle_fct += topology->get_oracle_fct(f);
 
-        data_pkt_sent += std::min(f->size_in_pkt, (int)f->total_pkt_sent);
-        parity_pkt_sent += std::max(0, (int)(f->total_pkt_sent - f->size_in_pkt));
+        data_pkt_sent += std::min(f->size_in_pkt, f->total_pkt_sent);
+        parity_pkt_sent += std::max(0U, (f->total_pkt_sent - f->size_in_pkt));
         data_pkt_drop += f->data_pkt_drop;
         parity_pkt_drop += std::max(0, f->pkt_drop - f->data_pkt_drop);
     }

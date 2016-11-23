@@ -35,6 +35,12 @@ Ack::Ack(Flow *flow, uint32_t seq_no_acked, std::vector<uint32_t> sack_list, uin
     this->sack_list = sack_list;
 }
 
+std::ostream& operator<<(std::ostream& os, const Ack& ack) {
+    os << "ack. seq_no: " << ack.seq_no
+        << std::endl;
+    return os;
+}
+
 RTSCTS::RTSCTS(bool type, double sending_time, Flow *f, uint32_t size, Host *src, Host *dst) : Packet(sending_time, f, 0, 0, f->hdr_size, src, dst) {
     if (type) {
         this->type = RTS_PACKET;

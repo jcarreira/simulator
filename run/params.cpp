@@ -37,6 +37,12 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         else if (key == "queue_size") {
             lineStream >> params.queue_size;
         }
+        else if (key == "agg_queue_size") {
+            lineStream >> params.agg_queue_size;
+        }
+        else if (key == "core_queue_size") {
+            lineStream >> params.core_queue_size;
+        }
         else if (key == "propagation_delay") {
             lineStream >> params.propagation_delay;
         }
@@ -54,6 +60,7 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         }
         else if (key == "flow_trace") {
             lineStream >> params.cdf_or_flow_trace;
+            std::cout << "cdf_or_flow_trace: " << params.cdf_or_flow_trace << std::endl;
         }
         else if (key == "cut_through") {
             lineStream >> params.cut_through;

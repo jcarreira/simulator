@@ -149,8 +149,10 @@ permutation_tm: 1
 template = '../simulator 1 conf_{0}_{1}.txt > result_{0}_{1}.txt'
 cdf_temp = './CDF_{}.txt'
 
-runs = ['pfabric', 'phost', 'fastpass']
-workloads = ['aditya', 'dctcp', 'datamining']
+#runs = ['pfabric', 'phost', 'fastpass']
+#workloads = ['aditya', 'dctcp', 'datamining']
+runs = ['pfabric']
+workloads = ['aditya']
 
 def getNumLines(trace):
     out = subprocess.check_output('wc -l {}'.format(trace), shell=True)

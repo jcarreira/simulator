@@ -56,7 +56,9 @@ class Ack : public Packet {
                 Host* src, Host *dst);
         uint32_t sack_bytes;
         std::vector<uint32_t> sack_list;
+
 };
+std::ostream& operator<<(std::ostream& os, const Ack& ack);
 
 class RTSCTS : public Packet {
     public:
