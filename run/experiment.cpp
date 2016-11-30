@@ -133,9 +133,11 @@ void printQueueStatistics(Topology *topo) {
         totalSentFromHosts += (*h)->queue->getSizeDepartures();
     }
 
-    std::cout << " Overall:"
+    std::cout << "# of drops: " << total_drop << std::endl;
+
+    std::cout << " Overall % of data sent dropped:"
         << std::setprecision(2)
-        << (double)total_drop*1460/totalSentFromHosts
+        << total_drop * 1460.0 / totalSentFromHosts
         << "\n";
 
     double totalSentToHosts = 0;
@@ -157,10 +159,11 @@ void printQueueStatistics(Topology *topo) {
     double dst_utilization = (totalSentToHosts * 8.0 / 144.0) / simulation_time;
 
     std::cout
-        << "DeadPackets " << 100.0 * (dead_bytes/total_bytes)
-        << "% DuplicatedPackets " << 100.0 * duplicated_packets_received * 1460.0 / total_bytes
-        << "% Utilization " << utilization / 10000000000 * 100
-        << "% " << dst_utilization / 10000000000 * 100  
+        << "DeadPackets " << 100.0 * (dead_bytes/total_bytes) << std::endl
+        << "% DuplicatedPackets " 
+        << 100.0 * duplicated_packets_received * 1460.0 / total_bytes << std::endl
+        //<< "% Utilization " << utilization / 10000000000 * 100 << std::endl
+        //<< "% " << dst_utilization / 10000000000 * 100 << std::endl
         << "%\n";
 }
 
@@ -382,8 +385,8 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
 
     std::cout 
         << "Average FCT: "   << fct.avg() << std::endl
-        << " 99.9\% FCT: "   << fct.get_percentile(0.999) << std::endl
         << " 99\% FCT: "       << fct.get_percentile(0.99) << std::endl
+        << " 99.9\% FCT: "   << fct.get_percentile(0.999) << std::endl
         << " MeanSlowdown: "  << slowdown.avg() << std::endl
         << " MeanInflation: " << inflation.avg() << std::endl
         << " NFCT: " << fct.total() / oracle_fct.total();
@@ -402,34 +405,34 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     std::cout << "\n";
 #endif
 
-    int i = 0;
-    for (auto it = slowdown_by_size.begin();
-            it != slowdown_by_size.end() && i < 6; ++it, ++i) {
-        unsigned key = it->first;
-        std::cout 
-            << key << ": Sl:" << it->second->avg() 
-            <<  " FCT:" << fct_by_size[it->first]->avg() 
-            << " QD:" << queuing_delay_by_size[it->first]->avg() 
-            << "(" << queuing_delay_by_size[it->first]->sd() << ")" 
-            << " Drp:" << drop_rate_by_size[it->first]->avg() 
-            << " Wt:" << wait_time_by_size[it->first]->avg()*1000000;
-        if (params.flow_type == CAPABILITY_FLOW)
-            std::cout << " DC:" 
-                <<  (capa_sent_by_size[it->first]->total() - 
-                        first_hop_depart_by_size[it->first]->total()) / 
-                capa_sent_by_size[it->first]->total();
-        
-        std::cout << " DP:" << 
-            (first_hop_depart_by_size[it->first]->total()
-             - last_hop_depart_by_size[it->first]->total()) 
-            / first_hop_depart_by_size[it->first]->total();
-        
-        std::cout << " WST:" 
-            << capa_waste_by_size[it->first]->total()
-            / capa_sent_by_size[it->first]->total();
-        
-        std::cout << "    ";
-    }
+    //int i = 0;
+    //for (auto it = slowdown_by_size.begin();
+    //        it != slowdown_by_size.end() && i < 6; ++it, ++i) {
+    //    unsigned key = it->first;
+    //    std::cout 
+    //        << key << ": Sl:" << it->second->avg() 
+    //        <<  " FCT:" << fct_by_size[it->first]->avg() 
+    //        << " QD:" << queuing_delay_by_size[it->first]->avg() 
+    //        << "(" << queuing_delay_by_size[it->first]->sd() << ")" 
+    //        << " Drp:" << drop_rate_by_size[it->first]->avg() 
+    //        << " Wt:" << wait_time_by_size[it->first]->avg()*1000000;
+    //    if (params.flow_type == CAPABILITY_FLOW)
+    //        std::cout << " DC:" 
+    //            <<  (capa_sent_by_size[it->first]->total() - 
+    //                    first_hop_depart_by_size[it->first]->total()) / 
+    //            capa_sent_by_size[it->first]->total();
+    //    
+    //    std::cout << " DP:" << 
+    //        (first_hop_depart_by_size[it->first]->total()
+    //         - last_hop_depart_by_size[it->first]->total()) 
+    //        / first_hop_depart_by_size[it->first]->total();
+    //    
+    //    std::cout << " WST:" 
+    //        << capa_waste_by_size[it->first]->total()
+    //        / capa_sent_by_size[it->first]->total();
+    //    
+    //    std::cout << "    ";
+    //}
 
     std::cout 
         << " [0,100k]avg: " << slowdown_0_100.avg() 

@@ -4,7 +4,7 @@ retx_timeout: 9.50003e-06
 propagation_delay: 0.0000002
 bandwidth: 40000000000.0
 flow_type: 1
-num_flow: 1000
+num_flow: 60000
 flow_trace: ./CDF_aditya.txt
 cut_through: 1
 mean_flow_size: 0
@@ -31,7 +31,7 @@ permutation_tm: 1
 queue_type: 1
 use_shared_queue: 0
 queue_size: 250000
-queue_alpha: 2
-queue_alpha_priority: 2
-queue_alpha_background: 2
+shared_queue.alpha: 2
+shared_queue.alpha_prio: 2
+shared_queue.alpha_back: 2
 preemptive_queue: 0

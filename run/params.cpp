@@ -195,8 +195,17 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         else if (key == "shared_queue.track_queue") {
             lineStream >> params.shared_queue.track_queue;
         }
+        else if (key == "shared_queue.track_switch") {
+            lineStream >> params.shared_queue.track_switch;
+        }
         else if (key == "shared_queue.log_file") {
             lineStream >> params.shared_queue.log_file;
+        }
+        else if (key == "flow_classes.use") {
+            lineStream >> params.flow_classes.use;
+        }
+        else if (key == "flow_classes.threshold") {
+            lineStream >> params.flow_classes.threshold;
         }
         else {
             std::cerr << "Unknown conf param: " << key << " in file: " << conf_filename << std::endl;

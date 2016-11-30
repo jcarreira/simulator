@@ -21,7 +21,7 @@ class PacketPropagationEvent;
 class Queue {
     public:
         Queue(uint32_t id, double rate, int location);
-        virtual ~Queue() {}
+        virtual ~Queue() { std::cout << "Queue dying" << std::endl;}
         virtual void set_src_dst(Node *src, Node *dst);
         virtual void enque(Packet *packet);
         virtual Packet *deque();
@@ -94,7 +94,7 @@ class Queue {
         int location;
         
         // file to log buffer utilization of one queue
-        mutable std::unique_ptr<std::ofstream> log_file;
+        static std::unique_ptr<std::ofstream> log_file;
 
 };
 
@@ -147,9 +147,27 @@ public:
     virtual void setBufferOccupancy(uint32_t bo) {
         buffer_occupancy = bo;
     }
+    
+    virtual void incActiveQueues() {
+        if (num_active_queues > 20)
+            throw std::runtime_error("too much incActiveQueues");
+        num_active_queues++;
+    }
+    
+    virtual void decActiveQueues() {
+        if (num_active_queues == 0)
+            throw std::runtime_error("too much decActiveQueues");
+        num_active_queues--;
+    }
+    
+    virtual uint32_t getActiveQueues() const {
+        return num_active_queues;
+    }
 
+protected:
     uint32_t buffer_size; // bytes
-    uint32_t buffer_occupancy; // bytes
+    uint32_t buffer_occupancy = 0;
+    uint32_t num_active_queues = 0;
 };
 
 class SharedQueue : public Queue {
@@ -181,6 +199,9 @@ class SharedQueue : public Queue {
         }
         
         virtual void enque(Packet *packet) override;
+        virtual Packet* deque() override;
+        
+        virtual void check_unfair_drops() const;
         
     protected:
         uint32_t alpha;

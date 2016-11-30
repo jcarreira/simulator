@@ -1,10 +1,10 @@
 init_cwnd: 10
 max_cwnd: 100000
-retx_timeout: 9.50003e-06
+retx_timeout: 0.001
 propagation_delay: 0.0000002
 bandwidth: 40000000000.0
 flow_type: 1
-num_flow: 1000
+num_flow: 60000
 flow_trace: ./CDF_aditya.txt
 cut_through: 1
 mean_flow_size: 0
@@ -31,7 +31,7 @@ permutation_tm: 1
 queue_type: 100
 use_shared_queue: 1
 queue_size: 5000000
-queue_alpha: 2
-queue_alpha_priority: 2
-queue_alpha_background: 2
+shared_queue.alpha: 2
+shared_queue.alpha_prio: 2
+shared_queue.alpha_back: 2
 preemptive_queue: 0

@@ -80,10 +80,16 @@ class DCExpParams {
         uint32_t core_queue_size;
 
         struct {
+            char     use = 0;
+            uint32_t threshold = 0;     
+        } flow_classes;
+
+        struct {
             double alpha_back = 1.0/2.0;
             double alpha_prio = 2;
             double alpha = 1.0/32;
-            int track_queue = -1; // default is we don't track any queue
+            uint32_t track_queue = 10000000; // default is we don't track any queue
+            uint32_t track_switch = 10000000; // default is we don't track any switch
             std::string log_file; // file with queue buffer occupancy
         } shared_queue;
 

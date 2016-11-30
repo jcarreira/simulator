@@ -13,9 +13,13 @@
 extern double get_current_time(); // TODOm
 extern void add_to_event_queue(Event* ev);
 extern uint32_t dead_packets;
+extern uint32_t unfair_drops;
 extern DCExpParams params;
 
 uint32_t Queue::instance_count = 0;
+
+std::unique_ptr<std::ofstream> Queue::log_file;
+
 
 /* Queues */
 Queue::Queue(uint32_t id, double rate, int location) {
@@ -65,27 +69,52 @@ void Queue::open_file() const {
     }
 
     std::cout << "Opening log file: "
-        << params.shared_queue.log_file << std::endl;
+        << params.shared_queue.log_file
+        << " in switch of type: " << src->type
+        << std::endl;
 
     log_file.reset(new std::ofstream(params.shared_queue.log_file, 
-                std::ofstream::out | std::ofstream::app));
-
-    log_file->rdbuf()->pubsetbuf(0, 0);
+                std::ofstream::out));// | std::ofstream::app));
 
     if (!log_file->is_open()) {
         std::cerr << "Error opening the file" << std::endl;
+        exit(-1);
     }
 }
 
 void Queue::log_queue_utilization() const {
-    if (params.shared_queue.track_queue == id) {
+    if (params.shared_queue.track_queue == id &&
+            params.shared_queue.track_switch == src->id &&
+            src->type == SWITCH) {
         static bool opened_file = false;
 
         if (!opened_file) {
+            opened_file = true;
             open_file();
         }
+       
+#ifdef DEBUG 
+        std::cerr << "Writing to src->id: "
+            << src->id 
+            << " queue id: " << id
+            << std::endl;
+#endif
 
-        (*log_file) << get_current_time() << " " << getBytesInQueue() << std::endl;
+        if (log_file.get() == nullptr) {
+            std::cerr << "Wrong handle " << log_file.get() << std::endl;
+            exit(-1);
+        }
+        (*log_file) << get_current_time() << " " << id << " "
+            << src->id << " "
+            << getBytesInQueue() << "\n";
+    } else {
+#ifdef DEBUG
+        std::cerr << "Not logging"
+            << " src->id: " << src->id
+            << " queue id: " << id
+            << " src->type: " << src->type
+            << std::endl;
+#endif
     }
 }
 
@@ -96,6 +125,8 @@ void Queue::enque(Packet *packet) {
 //       << " destId: " << packet->dst->id << std::endl; 
 //    std::cout << "This node label " << src->getLabel() << std::endl;
 //#endif
+
+    packet->last_enque_time = get_current_time();
 
     // we log here the buffer occupancy
     p_arrivals += 1;
@@ -114,6 +145,9 @@ void Queue::enque(Packet *packet) {
 Packet *Queue::deque() {
     if (getBytesInQueue() > 0) {
         Packet *p = packets.front();
+
+        p->total_queuing_delay += get_current_time() - p->last_enque_time;
+
         packets.pop_front();
         setBytesInQueue(getBytesInQueue() - p->size);
         p_departures += 1;
@@ -214,7 +248,17 @@ SharedQueue::SharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer>
     alpha(params.shared_queue.alpha),
     switch_buffer(buffer) {
 
-    std::cerr << "Creating shared queue. id: " << id << std::endl;
+    std::cerr << "Creating shared queue " 
+        << " id: " << id
+        << " alpha: " << alpha
+        << std::endl;
+}
+
+void SharedQueue::check_unfair_drops() const {
+    if (getBytesInQueue() <
+            switch_buffer->getBufferSize() / switch_buffer->getActiveQueues()) {
+        unfair_drops++;
+    }
 }
 
 void SharedQueue::drop(Packet *packet) {
@@ -229,7 +273,13 @@ void SharedQueue::drop(Packet *packet) {
             << std::endl;
 #endif
 
+    check_unfair_drops();
+
     Queue::drop(packet);
+
+    if (getBytesInQueue() == 0) {
+        switch_buffer->decActiveQueues();
+    }
 }
 
 void SharedQueue::enque(Packet *packet) {
@@ -244,6 +294,19 @@ void SharedQueue::enque(Packet *packet) {
         << std::endl;
 #endif
 
+    if (getBytesInQueue() == 0) {
+        switch_buffer->incActiveQueues();
+    }
+
     Queue::enque(packet);
 }
 
+Packet* SharedQueue::deque() {
+    Packet* p = Queue::deque();
+
+    if (p != NULL && getBytesInQueue() == 0) {
+        switch_buffer->decActiveQueues();
+    }
+
+    return p;
+}
