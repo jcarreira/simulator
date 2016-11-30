@@ -232,14 +232,6 @@ void SharedQueue::drop(Packet *packet) {
     Queue::drop(packet);
 }
 
-void SharedQueue::set_src_dst(Node *src, Node *dst) {
-    this->src = src;
-    this->dst = dst;
-
-    [[maybe_unused]]
-    uint32_t src_id = src->id;
-}
-
 void SharedQueue::enque(Packet *packet) {
 #ifdef DEBUG
     std::cerr << "Enqueing packet. "

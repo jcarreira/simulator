@@ -51,10 +51,6 @@ class Queue {
         virtual bool& getBusy() { return busy; }
         virtual bool& setBusy(bool b) { return busy = b; }
 
-        //virtual uint32_t getBytesInQueue() const { return bytes_in_queue; }
-        //virtual void setBytesInQueue(uint32_t bytes) {
-        //    bytes_in_queue = bytes;
-        //}
         virtual uint32_t getBytesInQueue() const = 0;
         virtual void setBytesInQueue(uint32_t bytes) = 0;
         virtual uint32_t getQueueLimitBytes() const = 0;
@@ -159,7 +155,6 @@ class SharedQueue : public Queue {
     public:
         SharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location);
         virtual ~SharedQueue() {}
-        virtual void set_src_dst(Node *src, Node *dst) override;
 
         virtual uint32_t getQueueLimitBytes() const override {
             uint32_t queueLimitBytes = alpha * switch_buffer->getFreeSize();
