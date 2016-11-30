@@ -15,16 +15,17 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
     params.interarrival_cdf = "none";
     params.permutation_tm = 0;
     params.hdr_size = 40;
+
     while (std::getline(input, line)) {
         std::istringstream lineStream(line);
         if (line.empty()) {
             continue;
         }
 
-
         lineStream >> key;
         assert(key[key.length()-1] == ':');
         key = key.substr(0, key.length()-1);
+
         if (key == "init_cwnd") {
             lineStream >> params.initial_cwnd;
         }
@@ -33,15 +34,6 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         }
         else if (key == "retx_timeout") {
             lineStream >> params.retx_timeout_value;
-        }
-        else if (key == "queue_size") {
-            lineStream >> params.queue_size;
-        }
-        else if (key == "agg_queue_size") {
-            lineStream >> params.agg_queue_size;
-        }
-        else if (key == "core_queue_size") {
-            lineStream >> params.core_queue_size;
         }
         else if (key == "propagation_delay") {
             lineStream >> params.propagation_delay;
@@ -177,15 +169,31 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
             lineStream >> params.hdr_size;
             assert(params.hdr_size > 0);
         }
-        //else if (key == "dctcp_delayed_ack_freq") {
-        //    lineStream >> params.dctcp_delayed_ack_freq;
-        //}
+        // QUEUE Configuration
+        else if (key == "queue_size") {
+            lineStream >> params.queue_size;
+        }
+        else if (key == "agg_queue_size") {
+            lineStream >> params.agg_queue_size;
+        }
+        else if (key == "core_queue_size") {
+            lineStream >> params.core_queue_size;
+        }
         else if (key == "use_shared_queue") {
             lineStream >> params.use_shared_queue;
         }
+        else if (key == "queue_alpha") {
+            lineStream >> params.queue_alpha;
+        }
+        else if (key == "queue_alpha_priority") {
+            lineStream >> params.queue_alpha_priority;
+        }
+        else if (key == "queue_alpha_background") {
+            lineStream >> params.queue_alpha_background;
+        }
         else {
-            std::cout << "Unknown conf param: " << key << " in file: " << conf_filename << "\n";
-            assert(false);
+            std::cerr << "Unknown conf param: " << key << " in file: " << conf_filename << std::endl;
+            exit(-1);
         }
 
         params.fastpass_epoch_time = 1500 * 8 * (FASTPASS_EPOCH_PKTS + 0.5) / params.bandwidth;

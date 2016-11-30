@@ -8,15 +8,15 @@ class DCExpParams {
     public:
         std::string param_str;
 
-        uint32_t initial_cwnd;
-        uint32_t max_cwnd;
-        double retx_timeout_value;
-        uint32_t mss;
-        uint32_t hdr_size;
-        uint32_t queue_size;
-        uint32_t queue_type;
-        uint32_t flow_type;
-        uint32_t load_balancing; //0 per pkt, 1 per flow
+        uint32_t initial_cwnd = 0;
+        uint32_t max_cwnd = 0;
+        double retx_timeout_value = 0;
+        uint32_t mss = 0;
+        uint32_t hdr_size = 0;
+        uint32_t queue_size = 0;
+        uint32_t queue_type = 1;
+        uint32_t flow_type = 1;
+        uint32_t load_balancing = 0; //0 per pkt, 1 per flow
 
         double propagation_delay;
         double bandwidth;
@@ -78,6 +78,9 @@ class DCExpParams {
         uint32_t use_shared_queue;
         uint32_t agg_queue_size;
         uint32_t core_queue_size;
+        double queue_alpha = 1.0/32;
+        double queue_alpha_background = 1.0/2.0;
+        double queue_alpha_priority = 2;
 
         double get_full_pkt_tran_delay(uint32_t size_in_byte = 1500)
         {

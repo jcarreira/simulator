@@ -87,7 +87,8 @@ void assign_flow_deadline(std::deque<Flow *> flows)
     {
         Flow* f = flows[i];
         double rv = nv_intarr->value();
-        f->deadline = f->start_time + std::max(topology->get_oracle_fct(f)/1000000.0 * 1.25, rv);
+        f->deadline = f->start_time
+            + std::max(topology->get_oracle_fct(f)/1000000.0 * 1.25, rv);
         //std::cout << f->start_time << " " << f->deadline << " " << topology->get_oracle_fct(f)/1000000 << " " << rv << "\n";
     }
 }
@@ -117,20 +118,31 @@ void printQueueStatistics(Topology *topo) {
     for (int i = 0; i < 4; i++) {
         total_drop += dropAt[i];
     }
+
+#if 0
     for (int i = 0; i < 4; i++) {
-        std::cout << "Hop:" << i << " Drp:" << dropAt[i] << "("  << (int)((double)dropAt[i]/total_drop * 100) << "%) ";
+        std::cout << "Hop:" << i 
+            << " Drp:" << dropAt[i] 
+            << "("  
+            << (int)((double)dropAt[i]/total_drop * 100) 
+            << "%) ";
     }
+#endif
 
     for (auto h = (topo->hosts).begin(); h != (topo->hosts).end(); h++) {
         totalSentFromHosts += (*h)->queue->getSizeDepartures();
     }
 
-    std::cout << " Overall:" << std::setprecision(2) <<(double)total_drop*1460/totalSentFromHosts << "\n";
+    std::cout << " Overall:"
+        << std::setprecision(2)
+        << (double)total_drop*1460/totalSentFromHosts
+        << "\n";
 
     double totalSentToHosts = 0;
     for (auto tor = (topo->switches).begin(); tor != (topo->switches).end(); tor++) {
         for (auto q = ((*tor)->queues).begin(); q != ((*tor)->queues).end(); q++) {
-            if ((*q)->getRate() == params.bandwidth) totalSentToHosts += (*q)->getSizeDepartures();
+            if ((*q)->getRate() == params.bandwidth)
+                totalSentToHosts += (*q)->getSizeDepartures();
         }
     }
 
@@ -147,7 +159,8 @@ void printQueueStatistics(Topology *topo) {
     std::cout
         << "DeadPackets " << 100.0 * (dead_bytes/total_bytes)
         << "% DuplicatedPackets " << 100.0 * duplicated_packets_received * 1460.0 / total_bytes
-        << "% Utilization " << utilization / 10000000000 * 100 << "% " << dst_utilization / 10000000000 * 100  
+        << "% Utilization " << utilization / 10000000000 * 100
+        << "% " << dst_utilization / 10000000000 * 100  
         << "%\n";
 }
 
@@ -167,15 +180,18 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     
     if (params.flow_type == FASTPASS_FLOW) {
         exit(-1);
-        topology = new FastpassTopology(params.num_hosts, params.num_agg_switches, params.num_core_switches, params.bandwidth, params.queue_type);
+        topology = new FastpassTopology(params.num_hosts, params.num_agg_switches,
+                params.num_core_switches, params.bandwidth, params.queue_type);
     }
     else if (params.big_switch) {
         exit(-1);
-        topology = new BigSwitchTopology(params.num_hosts, params.bandwidth, params.queue_type);
+        topology = new BigSwitchTopology(params.num_hosts,
+                params.bandwidth, params.queue_type);
     } 
     else {
         std::cout << "Building PFabric topology. Why?" << std::endl;
-        topology = new PFabricTopology(params.num_hosts, params.num_agg_switches, params.num_core_switches, params.bandwidth, params.queue_type);
+        topology = new PFabricTopology(params.num_hosts, params.num_agg_switches,
+                params.num_core_switches, params.bandwidth, params.queue_type);
     }
 
     uint32_t num_flows = params.num_flows_to_run;
@@ -189,7 +205,8 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     }
     else if (params.interarrival_cdf != "none") {
         std::cout << "Generating traffic with CustomCDFFlowGenerator" << std::endl;
-        fg = new CustomCDFFlowGenerator(num_flows, topology, params.cdf_or_flow_trace, params.interarrival_cdf);
+        fg = new CustomCDFFlowGenerator(num_flows, topology,
+                params.cdf_or_flow_trace, params.interarrival_cdf);
         fg->make_flows();
     }
     else if (params.permutation_tm != 0) {
@@ -228,7 +245,8 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     for (uint32_t i = 0; i < flows_sorted.size(); i++) {
         Flow* f = flows_sorted[i];
         if (exp_type == GEN_ONLY) {
-            std::cout << f->id << " " << f->size << " " << f->src->id << " " << f->dst->id << " " << 1e6*f->start_time << "\n";
+            std::cout << f->id << " " << f->size << " "
+                << f->src->id << " " << f->dst->id << " " << 1e6*f->start_time << "\n";
         }
         else {
             flow_arrivals.push_back(new FlowArrivalEvent(f->start_time, f));
@@ -285,10 +303,13 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
 
     //write_flows_to_file(flows_sorted, "flow.tmp");
 
-    Stats slowdown, inflation, fct, oracle_fct, first_send_time, slowdown_0_100, slowdown_100k_10m, slowdown_10m_inf;
-    Stats data_pkt_sent, parity_pkt_sent, data_pkt_drop, parity_pkt_drop, deadline;
+    Stats slowdown, inflation, fct, oracle_fct,
+          first_send_time, slowdown_0_100, slowdown_100k_10m, slowdown_10m_inf,
+          data_pkt_sent, parity_pkt_sent, data_pkt_drop, parity_pkt_drop, deadline;
+
     std::map<unsigned, Stats*> slowdown_by_size, queuing_delay_by_size, capa_sent_by_size,
-        fct_by_size, drop_rate_by_size, wait_time_by_size, first_hop_depart_by_size, last_hop_depart_by_size,
+        fct_by_size, drop_rate_by_size, wait_time_by_size,
+        first_hop_depart_by_size, last_hop_depart_by_size,
         capa_waste_by_size, log_slow_down_in_bytes;
 
     std::cout << std::setprecision(4);
@@ -359,29 +380,31 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
         parity_pkt_drop += std::max(0, f->pkt_drop - f->data_pkt_drop);
     }
 
-    double stability = ((double)num_outstanding_packets_at_100 - (double)num_outstanding_packets_at_50)/(arrival_packets_at_100 - arrival_packets_at_50);
-
     std::cout 
-        << "AverageFCT " << fct.avg() 
-        << " MeanSlowdown " << slowdown.avg() 
-        << " MeanInflation " << inflation.avg() 
-        << " NFCT " << fct.total() / oracle_fct.total() 
-        << " Stability " << stability;
+        << "Average FCT: "   << fct.avg() << std::endl
+        << " 99.9\% FCT: "   << fct.get_percentile(0.999) << std::endl
+        << " 99\% FCT: "       << fct.get_percentile(0.99) << std::endl
+        << " MeanSlowdown: "  << slowdown.avg() << std::endl
+        << " MeanInflation: " << inflation.avg() << std::endl
+        << " NFCT: " << fct.total() / oracle_fct.total();
 
     if (params.deadline) {
         std::cout << " DL:" << deadline.avg();
     }
 
-    std::cout << "\n";
+    std::cout << std::endl;
 
+#if 0
     std::cout << "Slowdown Log Scale: ";
     for (auto it = log_slow_down_in_bytes.begin(); it != log_slow_down_in_bytes.end(); ++it) {
         std::cout << pow(10, it->first) << ":" << it->second->avg() << " ";
     }
     std::cout << "\n";
+#endif
 
     int i = 0;
-    for (auto it = slowdown_by_size.begin(); it != slowdown_by_size.end() && i < 6; ++it, ++i) {
+    for (auto it = slowdown_by_size.begin();
+            it != slowdown_by_size.end() && i < 6; ++it, ++i) {
         unsigned key = it->first;
         std::cout 
             << key << ": Sl:" << it->second->avg() 
@@ -391,9 +414,20 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
             << " Drp:" << drop_rate_by_size[it->first]->avg() 
             << " Wt:" << wait_time_by_size[it->first]->avg()*1000000;
         if (params.flow_type == CAPABILITY_FLOW)
-            std::cout << " DC:" <<  (capa_sent_by_size[it->first]->total() - first_hop_depart_by_size[it->first]->total())/capa_sent_by_size[it->first]->total();
-        std::cout << " DP:" << (first_hop_depart_by_size[it->first]->total() - last_hop_depart_by_size[it->first]->total())/first_hop_depart_by_size[it->first]->total();
-        std::cout << " WST:" << capa_waste_by_size[it->first]->total()/capa_sent_by_size[it->first]->total();
+            std::cout << " DC:" 
+                <<  (capa_sent_by_size[it->first]->total() - 
+                        first_hop_depart_by_size[it->first]->total()) / 
+                capa_sent_by_size[it->first]->total();
+        
+        std::cout << " DP:" << 
+            (first_hop_depart_by_size[it->first]->total()
+             - last_hop_depart_by_size[it->first]->total()) 
+            / first_hop_depart_by_size[it->first]->total();
+        
+        std::cout << " WST:" 
+            << capa_waste_by_size[it->first]->total()
+            / capa_sent_by_size[it->first]->total();
+        
         std::cout << "    ";
     }
 
@@ -421,147 +455,4 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     
     delete fg;
 }
-
-// TODO new experiment types (continuous flow gen) not yet implemented
-/*
-// Runs a initialized scenario 
-void run_scenario_shuffle_traffic() {
-// Flow Arrivals create new flow arrivals
-// Add the first flow arrival
-
-while (event_queue.size() > 0) {
-Event *ev = event_queue.top();
-event_queue.pop();
-current_time = ev->time;
-if (start_time < 0) {
-start_time = current_time;
-}
-//event_queue.pop();
-//std::cout << "main.cpp::run_scenario():" << get_current_time() << " Processing " << ev->type << " " << event_queue.size() << std::endl;
-if (ev->cancelled) {
-if(ev->unique_id == 7394)
-std::cout << get_current_time() << " fixed..cpp:186 "  << " cancel " << ev->unique_id  << std::endl;
-delete ev; //TODO: Smarter
-continue;
-}
-ev->process_event();
-delete ev;
-}
-}
-
-
-EmpiricalRandomVariable *nv_bytes;
-
-
-
-//same as run_pFabric_experiment except with this generate_flows.
-void run_fixedDistribution_experiment_shuffle_traffic(int argc, char **argv, uint32_t exp_type) {
-std::cout << "run_fixedDistribution_experiment_shuffle_traffic\n";
-if (argc < 3) {
-std::cout << "Usage: <exe> exp_type conf_file" << std::endl;
-return;
-}
-std::string conf_filename(argv[2]);
-read_experiment_parameters(conf_filename, exp_type);
-params.num_hosts = 144;
-params.num_agg_switches = 9;
-params.num_core_switches = 4;
-
-
-if (params.cut_through == 1) {
-topology = new CutThroughTopology(params.num_hosts, params.num_agg_switches,
-params.num_core_switches, params.bandwidth, params.queue_type);
-} else {
-topology = new PFabricTopology(params.num_hosts, params.num_agg_switches,
-params.num_core_switches, params.bandwidth, params.queue_type);
-}
-PFabricTopology *topo = (PFabricTopology *) topology;
-
-
-nv_bytes = new CDFRandomVariable(params.cdf_or_flow_trace);
-
-//
-//  uint32_t num_flows = params.num_flows_to_run;
-//
-//  //no reading flows to schedule in this mode.
-//  generate_flows_to_schedule_fd(params.cdf_or_flow_trace, num_flows, topo);
-//
-//  std::deque<Flow *> flows_sorted = flows_to_schedule;
-//  struct FlowComparator {
-//    bool operator() (Flow *a, Flow *b) {
-//      return a->start_time < b->start_time;
-//    }
-//  } fc;
-//  std::sort (flows_sorted.begin(), flows_sorted.end(), fc);
-//
-//  for(uint32_t i = 0; i < flows_sorted.size(); i++) {
-//    Flow *f = flows_sorted[i];
-//    flow_arrivals.push_back(new FlowArrivalEvent(f->start_time, f));
-//  }
-
-
-int traffic_matrix[144];
-for(int i = 0; i < 144; i++)
-traffic_matrix[i] = i;
-
-for(int i = 0; i < 144; i++){
-    int j = std::rand()%(i+1);
-    int s = traffic_matrix[i];
-    traffic_matrix[i] = traffic_matrix[j];
-    traffic_matrix[j] = s;
-}
-
-for(int i = 0; i < 144; i++){
-    Host* src = topo->hosts[i];
-    Host* dst = topo->hosts[traffic_matrix[i]];
-    Flow* flow = Factory::get_flow(1, nv_bytes->value() * 1460, src, dst, params.flow_type);
-    flows_to_schedule.push_back(flow);
-    Event * event = new FlowArrivalEvent(flow->start_time, flow);
-    add_to_event_queue(event);
-}
-
-
-
-
-add_to_event_queue(new LoggingEvent(1 + 0.01));
-
-std::cout << "Running " << params.num_flows_to_run << " Flows\nCDF_File " <<
-params.cdf_or_flow_trace << "\nBandwidth " << params.bandwidth/1e9 <<
-"\nQueueSize " << params.queue_size <<
-"\nCutThrough " << params.cut_through <<
-"\nFlowType " << params.flow_type <<
-"\nQueueType " << params.queue_type <<
-"\nInit CWND " << params.initial_cwnd <<
-"\nMax CWND " << params.max_cwnd <<
-"\nRtx Timeout " << params.retx_timeout_value  <<
-"\nload_balancing (0: pkt)" << params.load_balancing <<
-std::endl;
-
-run_scenario_shuffle_traffic();
-
-std::deque<Flow *> flows_sorted = flows_to_schedule;
-struct FlowComparator {
-    bool operator() (Flow *a, Flow *b) {
-        return a->start_time < b->start_time;
-    }
-} fc;
-std::sort(flows_sorted.begin(), flows_sorted.end(), fc);
-
-// print statistics
-double sum = 0, sum_norm = 0, sum_inflation = 0;
-for (uint32_t i = 0; i < flows_sorted.size(); i++) {
-    Flow *f = flows_to_schedule[i];
-    if(!f->finished)
-        std::cout << "unfinished flow " << "size:" << f->size << " id:" << f->id << " next_seq:" << f->next_seq_no << " recv:" << f->received_bytes << "\n";
-    sum += 1000000.0 * f->flow_completion_time;
-    sum_norm += 1000000.0 * f->flow_completion_time / topology->get_oracle_fct(f);
-    sum_inflation += (double)f->total_pkt_sent / (f->size/f->mss);
-}
-std::cout << "AverageFCT " << sum / flows_sorted.size() <<
-" MeanSlowdown " << sum_norm / flows_sorted.size() <<
-" MeanInflation " << sum_inflation / flows_sorted.size() <<
-"\n";
-printQueueStatistics(topo);
-}
-*/
 
