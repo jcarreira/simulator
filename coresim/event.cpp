@@ -8,6 +8,7 @@
 
 #include <iomanip>
 
+#include "run/stats.h"
 #include "event.h"
 #include "packet.h"
 #include "topology.h"
@@ -26,6 +27,7 @@ extern std::deque<Flow*> flows_to_schedule;
 
 extern uint32_t num_outstanding_packets;
 extern uint32_t max_outstanding_packets;
+extern uint32_t unfair_drops;
 
 extern uint32_t num_outstanding_packets_at_50;
 extern uint32_t num_outstanding_packets_at_100;
@@ -331,22 +333,50 @@ void LoggingEvent::process_event() {
     injected_packets = arrival_packets_count;
     duplicated_packets = duplicated_packets_received;
 
-    std::cout << "LoggingEvent "
-        << " current time: " << current_time * 1e6 
-        << " dead pkts: " << dead_packets 
-        << " completed pkts: " << completed_packets 
-        << " sent pkts: " << sentInTimeslot
-        << " total received pkts: " << total_completed_packets 
-        << " total duplicated pkts: " << duplicated_packets_received
-        << " total useful pkts: " << total_completed_packets - duplicated_packets_received
-        << " backlog1: " << num_outstanding_packets
-        //<< " backlog2: " << (arrival_packets_count) - (total_completed_packets - duplicated_packets_received)
-        //<< " backlog3: " << backlog3
-        << " est backlog: " << backlog4
-        << " src util: " << ((double) sentInTimeslot) / theoretical_injection_rate
-        << " goodput: " << ((double) completed_packets - duplicatedInTimeslot) / theoretical_injection_rate
-        << " total injected pkts: " << arrival_packets_count 
-        << "\n";
+    // calculate distribution of switch buffer occupancies
+    Stats buffer_occupancy;
+    Stats agg_buffer_occupancy;
+    Stats core_buffer_occupancy;
+    for (auto s = topology->switches.begin(); s != topology->switches.end(); s++) {
+        buffer_occupancy += (*s)->getBufferOccupancy();
+    }
+
+    PFabricTopology* pTopology = dynamic_cast<PFabricTopology*>(topology);
+    for (auto s = pTopology->agg_switches.begin(); s != pTopology->agg_switches.end(); s++) {
+        agg_buffer_occupancy += (*s)->getBufferOccupancy();
+    }
+    for (auto s = pTopology->core_switches.begin(); s != pTopology->core_switches.end(); s++) {
+        core_buffer_occupancy += (*s)->getBufferOccupancy();
+    }
+
+    std::cout << "LoggingEvent " << '\n'
+        << "current time: " << current_time * 1e6 
+        << '\n'
+        << "dead pkts: " << dead_packets << '\t'
+        << "completed pkts: " << completed_packets  << '\t'
+        << "sent pkts: " << sentInTimeslot << '\t'
+        << "total received pkts: " << total_completed_packets  << '\t'
+        << "total duplicated pkts: " << duplicated_packets_received << '\t'
+        << "total useful pkts: " << total_completed_packets - duplicated_packets_received << '\t'
+        << "total injected pkts: " << arrival_packets_count 
+        << '\n'
+        << "backlog1: " << num_outstanding_packets << '\t'
+        << "est backlog: " << backlog4
+        << '\n'
+        << "src util: " << ((double) sentInTimeslot) / theoretical_injection_rate << '\t'
+        << "goodput: " << ((double) completed_packets - duplicatedInTimeslot) / theoretical_injection_rate
+        << '\n'
+        << "buffer occupancy (average): " << buffer_occupancy.avg()  << '\t'
+        << "buffer occupancy (99%): " << buffer_occupancy.get_percentile(0.99)
+        << '\n'
+        << "agg buffer occupancy (average): " << agg_buffer_occupancy.avg()  << '\t'
+        << "agg buffer occupancy (99%): " << agg_buffer_occupancy.get_percentile(0.99)
+        << '\n'
+        << "core buffer occupancy (average): " << core_buffer_occupancy.avg()  << '\t'
+        << "core buffer occupancy (99%): " << core_buffer_occupancy.get_percentile(0.99)
+        << '\n'
+        << "unfair drops: " << unfair_drops
+        << std::endl;
     
     dead_packets = 0;
     completed_packets = 0;
@@ -366,6 +396,8 @@ void LoggingEvent::process_event() {
         add_to_event_queue(new LoggingEvent(current_time + 10, ttl));
     }
     */
+
+
 }
 
 
@@ -403,7 +435,12 @@ void FlowFinishedEvent::process_event() {
             << flow->total_pkt_sent << "/" << (flow->size/flow->mss) << "//" << flow->received_count << " "
             << flow->data_pkt_drop << "/" << flow->ack_pkt_drop << "/" << flow->pkt_drop << " "
             << 1000000 * (flow->first_byte_send_time - flow->start_time) << " "
-            << std::endl;
+            << '\n';
+
+        if (flow->id % 10000 == 0) {
+            std::cout << (*flow) << std::endl;
+        }
+
         std::cout << std::setprecision(9) << std::fixed;
     }
 }

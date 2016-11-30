@@ -9,15 +9,15 @@
 
 extern DCExpParams params;
 
-bool FlowComparator::operator() (Flow *a, Flow *b) {
-    return a->flow_priority > b->flow_priority;
-    //  if(a->flow_priority > b->flow_priority)
-    //    return true;
-    //  else if(a->flow_priority == b->flow_priority)
-    //    return a->id > b->id;
-    //  else
-    //    return false;
-}
+//bool FlowComparator::operator() (Flow *a, Flow *b) {
+//    return a->flow_priority > b->flow_priority;
+//    //  if(a->flow_priority > b->flow_priority)
+//    //    return true;
+//    //  else if(a->flow_priority == b->flow_priority)
+//    //    return a->id > b->id;
+//    //  else
+//    //    return false;
+//}
 
 Node::Node(uint32_t id, uint32_t type) {
     this->id = id;
@@ -31,6 +31,9 @@ Host::Host(uint32_t id, double rate, uint32_t queue_type, uint32_t host_type) : 
         std::cerr << "Forcing hosts to use static queues" << std::endl;
         queue_type = DROPTAIL_QUEUE;
     }
+
+    std::cerr << "Creating host id: " << id << std::endl;
+
     queue = Factory::get_queue(id, rate, params.queue_size, queue_type, 0, 0, nullptr);
     this->host_type = host_type;
 }
@@ -42,6 +45,8 @@ Switch::Switch(uint32_t id, uint32_t switch_type) : Node(id, SWITCH) {
 
 CoreSwitch::CoreSwitch(uint32_t id, uint32_t nq, double rate, uint32_t type) : Switch(id, CORE_SWITCH) {
     std::shared_ptr<SwitchBuffer> buffer;
+    
+    std::cerr << "Creating core switch id: " << id << std::endl;
 
     if (params.use_shared_queue == 1) {
         buffer.reset(new SwitchBuffer(params.queue_size));
@@ -64,6 +69,8 @@ AggSwitch::AggSwitch(
         uint32_t type
         ) : Switch(id, AGG_SWITCH) {
         
+    std::cerr << "Creating aggregate switch id: " << id << std::endl;
+
     std::shared_ptr<SwitchBuffer> buffer(
             params.use_shared_queue ? new SwitchBuffer(params.queue_size)
                                     : nullptr);

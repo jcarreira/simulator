@@ -59,13 +59,9 @@ Flow::Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d) {
 }
 
 Flow::~Flow() {
-    //  packets.clear();
 }
 
 void Flow::start_flow() {
-//    if (id == 90981) {
-//        std::cout << "90981 starting flow" << std::endl;
-//    }
     send_pending_data();
 }
 
@@ -74,34 +70,18 @@ void Flow::send_pending_data() {
     std::cout << "send_pending_data received_bytes: " << 
         received_bytes << " size: " << size << std::endl;
 #endif
-//    if (id == 90981) {
-//        std::cout << "90981 send_pending_data" << std::endl;
-//        std::cout << "90981 received_bytes: " << received_bytes << std::endl;
-//        std::cout << "90981 last_unacked_seq: " << last_unacked_seq << std::endl;
-//        std::cout << "90981 next_seq_no: " << next_seq_no << std::endl;
-//        std::cout << "90981 size: " << size << std::endl;
-//    }
     if (last_unacked_seq < size) {
-    //if (received_bytes < size) {
         uint32_t seq = next_seq_no;
         uint32_t window = cwnd_mss * mss + scoreboard_sack_bytes;
     
-//        if (id == 90981) {
-//            std::cout << "90981 window: " << window << std::endl;
-//        }
-
         while ((seq + mss <= last_unacked_seq + window) &&
                 (seq + mss <= size)) {
-//            if (id == 90981) {
-//                std::cout << "90981 doing seq: " << seq << std::endl;
-//            }
             // TODO Make it explicit through the SACK list
             //if (received.count(seq) == 0) {
          //       if (id == 90981) {
          //           std::cout << "90981 send seq: " << seq << std::endl;
          //       }
                 send(seq);
-            //}
             next_seq_no = seq + mss;
             seq += mss;
             if (retx_event == NULL) {
@@ -113,6 +93,9 @@ void Flow::send_pending_data() {
 
 Packet *Flow::send(uint32_t seq) {
     Packet *p = NULL;
+
+    if (first_byte_send_time == -1)
+        first_byte_send_time = get_current_time();
 
 #ifdef DEBUG
     std::cout << "send. time: " << get_current_time() << " us "
@@ -131,26 +114,22 @@ Packet *Flow::send(uint32_t seq) {
             );
     this->total_pkt_sent++;
 
-    //if (id == 90981) {
-    //    std::cout << "90981 adding packet queuing event" << std::endl;
-    //}
     add_to_event_queue(new PacketQueuingEvent(get_current_time(), p, src->queue));
     return p;
 }
 
 void Flow::send_ack(uint32_t seq, std::vector<uint32_t> sack_list) {
-    //if (id == 90981) {
-    //    std::cout << "90981 sending ack" << std::endl;
-    //}
     Packet *p = new Ack(this, seq, sack_list, hdr_size, dst, src); //Acks are dst->src
+
+    ack_pkts_sent++;
+
     add_to_event_queue(new PacketQueuingEvent(get_current_time(), p, dst->queue));
 }
 
 void Flow::receive_ack(uint32_t ack, std::vector<uint32_t> sack_list) {
-    //if (id == 90981) {
-    //    std::cout << "90981 receiving ack. ack: " << ack << " size: " << size << std::endl;
-    //}
     this->scoreboard_sack_bytes = sack_list.size() * mss;
+
+    ack_pkts_received++;
 
     // On timeouts; next_seq_no is updated to the last_unacked_seq;
     // In such cases, the ack can be greater than next_seq_no; update it
@@ -166,10 +145,6 @@ void Flow::receive_ack(uint32_t ack, std::vector<uint32_t> sack_list) {
         // Adjust cwnd
         increase_cwnd();
     
-        //if (id == 90981) {
-        //    std::cout << "90981 received new ack. Send more data" << std::endl;
-        //}
-
         // Send the remaining data
         send_pending_data();
 
@@ -197,9 +172,6 @@ void Flow::receive_ack(uint32_t ack, std::vector<uint32_t> sack_list) {
 
 
 void Flow::receive(Packet *p) {
-    //if (id == 90981) {
-    //    std::cout << "90981 receive type: " << p->type << std::endl;
-    //}
     if (finished) {
         delete p;
         return;
@@ -207,6 +179,7 @@ void Flow::receive(Packet *p) {
 
     if (p->type == ACK_PACKET) {
         Ack *a = (Ack *) p;
+        total_ack_queueing_time += p->total_queuing_delay;
         receive_ack(a->seq_no, a->sack_list);
     }
     else if(p->type == NORMAL_PACKET) {
@@ -223,9 +196,6 @@ void Flow::receive(Packet *p) {
 }
 
 void Flow::receive_data_pkt(Packet* p) {
-    //if (id == 90981) {
-    //    std::cout << "90981 receive data pkt" << std::endl;
-    //}
     received_count++;
     total_queuing_time += p->total_queuing_delay;
 
@@ -241,15 +211,12 @@ void Flow::receive_data_pkt(Packet* p) {
             num_outstanding_packets = 0;
         received_bytes += (p->size - hdr_size);
     } else {
-        duplicated_packets_received += 1;
+        ::duplicated_packets_received += 1;
+        this->duplicate_pkts_received += 1;
     }
     if (p->seq_no > max_seq_no_recv) {
         max_seq_no_recv = p->seq_no;
     }
-    //if (id == 90981) {
-    //    std::cout << "90981 received seqno: " <<  p->seq_no << std::endl;
-    //    std::cout << "90981 new received_bytes: " <<  received_bytes << std::endl;
-    //}
     // Determing which ack to send
     uint32_t s = recv_till;
     bool in_sequence = true;
@@ -267,10 +234,6 @@ void Flow::receive_data_pkt(Packet* p) {
         s += mss;
     }
 
-    //if (id == 90981) {
-    //    std::cout << "90981 sending ack. in_sequence: "
-    //        << in_sequence << " recv_till: " << recv_till << std::endl;
-    //}
     send_ack(recv_till, sack_list); // Cumulative Ack
 }
 
@@ -284,14 +247,11 @@ void Flow::set_timeout(double time) {
 
 
 void Flow::handle_timeout() {
-    //if (id == 90981) {
-    //    std::cout << "90981 handle timeout" << std::endl;
-    //    std::cout << "90981 next_seq_no: " << next_seq_no << std::endl;
-    //    std::cout << "90981 last_unacked_seq: " << last_unacked_seq << std::endl;
-    //    std::cout << "90981 cwnd_mss: " << cwnd_mss << std::endl;
-    //}
     next_seq_no = last_unacked_seq;
     //Reset congestion window to 1
+
+    timeout_count++;
+
     cwnd_mss = 1;
     send_pending_data(); //TODO Send again
     set_timeout(get_current_time() + retx_timeout);  // TODO
@@ -356,6 +316,11 @@ std::ostream& operator<< (std::ostream& os, const Flow& flow) {
         << " first_byte_receive_time: " << flow.first_byte_receive_time
         << " deadline: " << flow.deadline
         << " flow_priority: " << flow.flow_priority
-        << std::endl;
+        << " timeout_count: " << flow.timeout_count
+        << " duplicate_pkts_received: " << flow.duplicate_pkts_received
+        << " ack_pkts_sent: " << flow.ack_pkts_sent
+        << " ack_pkts_received: " << flow.ack_pkts_received
+        << " total_ack_queueing_time: " << flow.total_ack_queueing_time
+        << '\n';
     return os;
 }

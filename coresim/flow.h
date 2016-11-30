@@ -79,6 +79,12 @@ class Flow {
 
         uint32_t flow_priority;
         double deadline;
+
+        uint32_t timeout_count = 0;
+        uint32_t ack_pkts_sent = 0;
+        uint32_t ack_pkts_received = 0;
+        uint32_t duplicate_pkts_received = 0;
+        double total_ack_queueing_time = 0;
 };
 
 std::ostream& operator<< (std::ostream& os, const Flow& flow);

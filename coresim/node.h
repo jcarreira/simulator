@@ -22,11 +22,11 @@ class Flow;
 class Queue;
 
 
-class FlowComparator{
-    public:
-        bool operator() (Flow *a, Flow *b);
-};
-
+//class FlowComparator{
+//    public:
+//        bool operator() (Flow *a, Flow *b);
+//};
+//
 
 class Node {
     public:
@@ -52,6 +52,14 @@ class Switch : public Node {
         uint32_t switch_type;
         std::vector<Queue *> queues;
         virtual std::string getLabel() override { return ""; }
+
+        virtual uint32_t getBufferOccupancy() const {
+            uint32_t total_buffer_occupancy = 0;
+            for (uint32_t i = 0; i < queues.size(); ++i) {
+                total_buffer_occupancy += queues[i]->getBytesInQueue();
+            }
+            return total_buffer_occupancy;
+        }
 };
 
 class CoreSwitch : public Switch {

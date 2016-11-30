@@ -46,6 +46,7 @@ uint32_t backlog3 = 0;
 uint32_t backlog4 = 0;
 uint32_t total_completed_packets = 0;
 uint32_t sent_packets = 0;
+uint32_t unfair_drops = 0;
 
 extern DCExpParams params;
 double start_time = -1;
