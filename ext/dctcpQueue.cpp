@@ -10,7 +10,9 @@ extern double get_current_time();
 extern void add_to_event_queue(Event *ev);
 extern DCExpParams params;
 
-DctcpQueue::DctcpQueue(uint32_t id, double rate, uint32_t limit_bytes, int location) : Queue(id, rate, limit_bytes, location) {}
+DctcpQueue::DctcpQueue(uint32_t id, double rate, uint32_t limit_bytes, int location) :
+    StaticQueue(id, rate, limit_bytes, location)
+{}
 
 /**
  * ECN marking. Otherwise just a droptail queue.
@@ -22,7 +24,7 @@ DctcpQueue::DctcpQueue(uint32_t id, double rate, uint32_t limit_bytes, int locat
 void DctcpQueue::enque(Packet *packet) {
     p_arrivals += 1;
     b_arrivals += packet->size;
-    if (getBytesInQueue() + packet->size <= limit_bytes) {
+    if (getBytesInQueue() + packet->size <= getQueueLimitBytes()) {
         packets.push_back(packet);
         setBytesInQueue(getBytesInQueue() + packet->size);
 

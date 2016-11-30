@@ -59,7 +59,8 @@ class Factory {
                 uint32_t queue_size, 
                 uint32_t type,
                 double drop_prob, 
-                int location
+                int location,
+                std::shared_ptr<SwitchBuffer> buffer
                 );
 
         static Host* get_host(
