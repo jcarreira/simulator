@@ -186,9 +186,6 @@ void Flow::receive_ack(uint32_t ack, std::vector<uint32_t> sack_list) {
     }
 
     if (ack == size && !finished) {
-        if (id == 90981) {
-            std::cout << "90981 finished" << std::endl;
-        }
         finished = true;
         received.clear();
         finish_time = get_current_time();
@@ -326,6 +323,8 @@ uint32_t Flow::get_priority(uint32_t seq) {
 void Flow::increase_cwnd() {
     cwnd_mss += 1;
     if (cwnd_mss > max_cwnd) {
+        std::cerr << "Capping congestion window size" << std::endl;
+        exit(-1);
         cwnd_mss = max_cwnd;
     }
 }
