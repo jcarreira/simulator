@@ -102,6 +102,7 @@ class StaticQueue : public Queue {
     public:
         StaticQueue(uint32_t id, double rate, uint32_t limit_bytes, int location) :
             Queue(id, rate, location),
+            bytes_in_queue(0),
             limit_bytes_(limit_bytes) {}
         virtual ~StaticQueue() = default;
         
