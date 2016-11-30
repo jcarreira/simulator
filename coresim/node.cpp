@@ -5,6 +5,8 @@
 
 #include "../run/params.h"
 
+#include <cassert>
+
 extern DCExpParams params;
 
 bool FlowComparator::operator() (Flow *a, Flow *b) {
@@ -24,7 +26,12 @@ Node::Node(uint32_t id, uint32_t type) {
 
 // TODO FIX superclass constructor
 Host::Host(uint32_t id, double rate, uint32_t queue_type, uint32_t host_type) : Node(id, HOST) {
-    queue = Factory::get_queue(id, rate, params.queue_size, queue_type, 0, 0);
+    //assert(queue_type == DROPTAIL_QUEUE); // static queue
+    if (queue_type != DROPTAIL_QUEUE) {
+        std::cerr << "Forcing hosts to use static queues" << std::endl;
+        queue_type = DROPTAIL_QUEUE;
+    }
+    queue = Factory::get_queue(id, rate, params.queue_size, queue_type, 0, 0, nullptr);
     this->host_type = host_type;
 }
 
@@ -34,8 +41,16 @@ Switch::Switch(uint32_t id, uint32_t switch_type) : Node(id, SWITCH) {
 }
 
 CoreSwitch::CoreSwitch(uint32_t id, uint32_t nq, double rate, uint32_t type) : Switch(id, CORE_SWITCH) {
+    std::shared_ptr<SwitchBuffer> buffer;
+
+    if (params.use_shared_queue) {
+        buffer.reset(new SwitchBuffer(params.queue_size));
+    } else {
+        buffer = nullptr;
+    }
+    
     for (uint32_t i = 0; i < nq; i++) {
-        queues.push_back(Factory::get_queue(i, rate, params.queue_size, type, 0, 2));
+        queues.push_back(Factory::get_queue(i, rate, params.queue_size, type, 0, 2, buffer));
     }
 }
 
@@ -48,10 +63,17 @@ AggSwitch::AggSwitch(
         double r2, 
         uint32_t type
         ) : Switch(id, AGG_SWITCH) {
+        
+    std::shared_ptr<SwitchBuffer> buffer(
+            params.use_shared_queue ? new SwitchBuffer(params.queue_size, 0)
+                                    : nullptr);
+
     for (uint32_t i = 0; i < nq1; i++) {
-        queues.push_back(Factory::get_queue(i, r1, params.queue_size, type, 0, 3));
+        queues.push_back(Factory::get_queue(i, r1, params.queue_size, type, 0, 3, buffer));
     }
+
     for (uint32_t i = 0; i < nq2; i++) {
-        queues.push_back(Factory::get_queue(i, r2, params.queue_size, type, 0, 1));
+        queues.push_back(Factory::get_queue(i, r2, params.queue_size, type, 0, 1, buffer));
     }
 }
+
