@@ -1,6 +1,8 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+//#define DEBUG
+
 #include <stdint.h>
 
 bool debug_flow(uint32_t fid);

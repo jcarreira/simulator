@@ -78,9 +78,14 @@ class DCExpParams {
         uint32_t use_shared_queue;
         uint32_t agg_queue_size;
         uint32_t core_queue_size;
-        double queue_alpha = 1.0/32;
-        double queue_alpha_background = 1.0/2.0;
-        double queue_alpha_priority = 2;
+
+        struct {
+            double alpha_back = 1.0/2.0;
+            double alpha_prio = 2;
+            double alpha = 1.0/32;
+            int track_queue = -1; // default is we don't track any queue
+            std::string log_file; // file with queue buffer occupancy
+        } shared_queue;
 
         double get_full_pkt_tran_delay(uint32_t size_in_byte = 1500)
         {

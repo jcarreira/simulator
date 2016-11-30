@@ -182,14 +182,21 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         else if (key == "use_shared_queue") {
             lineStream >> params.use_shared_queue;
         }
-        else if (key == "queue_alpha") {
-            lineStream >> params.queue_alpha;
+        else if (key == "shared_queue.alpha") {
+            lineStream >> params.shared_queue.alpha;
         }
-        else if (key == "queue_alpha_priority") {
-            lineStream >> params.queue_alpha_priority;
+        else if (key == "shared_queue.alpha_prio") {
+            lineStream >> params.shared_queue.alpha_prio;
         }
-        else if (key == "queue_alpha_background") {
-            lineStream >> params.queue_alpha_background;
+        else if (key == "shared_queue.alpha_back") {
+            lineStream >> params.shared_queue.alpha_back;
+        }
+        // enables tracking buffer utilization of one specific queu
+        else if (key == "shared_queue.track_queue") {
+            lineStream >> params.shared_queue.track_queue;
+        }
+        else if (key == "shared_queue.log_file") {
+            lineStream >> params.shared_queue.log_file;
         }
         else {
             std::cerr << "Unknown conf param: " << key << " in file: " << conf_filename << std::endl;

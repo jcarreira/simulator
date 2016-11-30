@@ -15,7 +15,11 @@ bool debug_all_hosts = false;
 std::set<uint32_t> hosts_to_debug_set = {};
 
 bool debug_flow(uint32_t fid){
+#ifdef DEBUG
+    return true;
+#else
     return false;
+#endif
     //return debug_mode && get_current_time() >= debug_start_time?(debug_all_flows||flows_to_debug_set.count(fid)):false;
 }
 

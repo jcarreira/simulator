@@ -43,7 +43,7 @@ Switch::Switch(uint32_t id, uint32_t switch_type) : Node(id, SWITCH) {
 CoreSwitch::CoreSwitch(uint32_t id, uint32_t nq, double rate, uint32_t type) : Switch(id, CORE_SWITCH) {
     std::shared_ptr<SwitchBuffer> buffer;
 
-    if (params.use_shared_queue) {
+    if (params.use_shared_queue == 1) {
         buffer.reset(new SwitchBuffer(params.queue_size));
     } else {
         buffer = nullptr;
@@ -65,7 +65,7 @@ AggSwitch::AggSwitch(
         ) : Switch(id, AGG_SWITCH) {
         
     std::shared_ptr<SwitchBuffer> buffer(
-            params.use_shared_queue ? new SwitchBuffer(params.queue_size, 0)
+            params.use_shared_queue ? new SwitchBuffer(params.queue_size)
                                     : nullptr);
 
     for (uint32_t i = 0; i < nq1; i++) {

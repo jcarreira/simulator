@@ -58,6 +58,36 @@ void Queue::set_src_dst(Node *src, Node *dst) {
     this->dst = dst;
 }
 
+void Queue::open_file() const {
+    if (params.shared_queue.log_file == "") {
+        std::cerr << "Wrong lof file name";
+        exit(-1);
+    }
+
+    std::cout << "Opening log file: "
+        << params.shared_queue.log_file << std::endl;
+
+    log_file.reset(new std::ofstream(params.shared_queue.log_file, 
+                std::ofstream::out | std::ofstream::app));
+
+    log_file->rdbuf()->pubsetbuf(0, 0);
+
+    if (!log_file->is_open()) {
+        std::cerr << "Error opening the file" << std::endl;
+    }
+}
+
+void Queue::log_queue_utilization() const {
+    if (params.shared_queue.track_queue == id) {
+        static bool opened_file = false;
+
+        if (!opened_file) {
+            open_file();
+        }
+
+        (*log_file) << get_current_time() << " " << getBytesInQueue() << std::endl;
+    }
+}
 
 void Queue::enque(Packet *packet) {
 //#ifdef DEBUG
@@ -77,6 +107,8 @@ void Queue::enque(Packet *packet) {
         pkt_drop++;
         drop(packet);
     }
+
+    log_queue_utilization();
 }
 
 Packet *Queue::deque() {
@@ -179,7 +211,7 @@ void ProbDropQueue::enque(Packet *packet) {
 
 SharedQueue::SharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location) :
     Queue(id, rate, location),
-    alpha(params.queue_alpha),
+    alpha(params.shared_queue.alpha),
     switch_buffer(buffer) {
 
     std::cerr << "Creating shared queue. id: " << id << std::endl;

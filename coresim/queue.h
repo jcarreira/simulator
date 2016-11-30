@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <vector>
 #include <memory>
+#include <fstream>
 #include <iostream>
 
 #define DROPTAIL_QUEUE 1
@@ -65,6 +66,9 @@ class Queue {
         }
 
         static void setInstanceCount(uint32_t count) { instance_count = count; }
+
+        void log_queue_utilization() const;
+        void open_file() const;
         
     protected:
         // Members
@@ -92,6 +96,9 @@ class Queue {
         uint64_t spray_counter;
 
         int location;
+        
+        // file to log buffer utilization of one queue
+        mutable std::unique_ptr<std::ofstream> log_file;
 
 };
 
