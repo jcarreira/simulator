@@ -4,6 +4,7 @@
 #include <deque>
 #include <stdint.h>
 #include <vector>
+#include <memory>
 #include <iostream>
 
 #define DROPTAIL_QUEUE 1
@@ -18,7 +19,7 @@ class PacketPropagationEvent;
 
 class Queue {
     public:
-        Queue(uint32_t id, double rate, uint32_t limit_bytes, int location);
+        Queue(uint32_t id, double rate, int location);
         virtual ~Queue() {}
         virtual void set_src_dst(Node *src, Node *dst);
         virtual void enque(Packet *packet);
@@ -49,11 +50,13 @@ class Queue {
         virtual bool& getBusy() { return busy; }
         virtual bool& setBusy(bool b) { return busy = b; }
 
-        virtual uint32_t getBytesInQueue() const { return bytes_in_queue; }
-        virtual void setBytesInQueue(int bytes) {
-            bytes_in_queue = bytes;
-        }
-        virtual uint32_t getLimitBytes() const { return limit_bytes; }
+        //virtual uint32_t getBytesInQueue() const { return bytes_in_queue; }
+        //virtual void setBytesInQueue(uint32_t bytes) {
+        //    bytes_in_queue = bytes;
+        //}
+        virtual uint32_t getBytesInQueue() const = 0;
+        virtual void setBytesInQueue(uint32_t bytes) = 0;
+        virtual uint32_t getQueueLimitBytes() const = 0;
 
         virtual QueueProcessingEvent* getQueueProcEvent() { return queue_proc_event; }
         virtual QueueProcessingEvent* setQueueProcEvent(QueueProcessingEvent* qe) {
@@ -69,7 +72,6 @@ class Queue {
         uint32_t unique_id;
         static uint32_t instance_count;
         double rate;
-        uint32_t limit_bytes;
         std::deque<Packet *> packets;
         bool busy;
         QueueProcessingEvent *queue_proc_event;
@@ -91,44 +93,100 @@ class Queue {
 
         int location;
 
-    private:
-        uint32_t bytes_in_queue;
 };
 
 class StaticQueue : public Queue {
     public:
         StaticQueue(uint32_t id, double rate, uint32_t limit_bytes, int location) :
-            Queue(id, rate, limit_bytes, location)
-    {}
-        ~StaticQueue(){};
+            Queue(id, rate, location),
+            limit_bytes_(limit_bytes) {}
+        virtual ~StaticQueue() = default;
+        
+    uint32_t getBytesInQueue() const override {
+        return bytes_in_queue; 
+    }
 
+    void setBytesInQueue(uint32_t bytes) override {
+        bytes_in_queue = bytes;
+    }
+        
+    uint32_t getQueueLimitBytes() const override {
+        return limit_bytes_;
+    }
+
+private:
+    uint32_t bytes_in_queue;
+    uint32_t limit_bytes_;
+
+};
+
+struct SwitchBuffer {
+public:
+    SwitchBuffer(uint32_t bsize, uint32_t bocc = 0) :
+        buffer_size(bsize),
+        buffer_occupancy(bocc) {
+
+    }
+    
+    virtual uint32_t getBufferSize() const {
+        return buffer_size;
+    }
+
+    virtual uint32_t getFreeSize() const {
+        return buffer_size - buffer_occupancy;
+    }
+    
+    virtual uint32_t getBufferOccupancy() const {
+        return buffer_occupancy;
+    }
+    
+    virtual void setBufferOccupancy(uint32_t bo) {
+        buffer_occupancy = bo;
+    }
+
+    uint32_t buffer_size; // bytes
+    uint32_t buffer_occupancy; // bytes
 };
 
 class SharedQueue : public Queue {
     public:
-        SharedQueue(uint32_t id, double rate, uint32_t limit_bytes, int location);
+        SharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location);
         virtual ~SharedQueue() {}
-        virtual void set_src_dst(Node *src, Node *dst);
+        virtual void set_src_dst(Node *src, Node *dst) override;
 
-        uint32_t getLimitBytes() const {
-            if (!limit_bytes_ptr) {
-                std::cerr << "Error" << std::endl;
-                exit(-1);
-            }
-            return *limit_bytes_ptr;
+        virtual uint32_t getQueueLimitBytes() const override {
+            uint32_t queueLimitBytes = alpha * switch_buffer->getFreeSize();
+            return queueLimitBytes;
         }
         
-        static uint32_t limit_bytes_array_host[200];
-        static uint32_t limit_bytes_array_agg_switch[200];
-        static uint32_t limit_bytes_array_core_switch[200];
+        void drop(Packet *packet) override;
+        
+        uint32_t getBytesInQueue() const override {
+            return bytes_in_queue;
+        }
 
+        void setBytesInQueue(uint32_t bytes) override {
+            // update the buffer occupancy
+            if (bytes > bytes_in_queue) {
+                switch_buffer->setBufferOccupancy(
+                        switch_buffer->getBufferOccupancy() + (bytes - bytes_in_queue));
+            } else {
+                switch_buffer->setBufferOccupancy(
+                        switch_buffer->getBufferOccupancy() - (bytes_in_queue - bytes));
+            }
+            bytes_in_queue = bytes;
+        }
+        
+        virtual void enque(Packet *packet) override;
+        
     protected:
-        uint32_t *limit_bytes_ptr;
-        uint32_t src_type;
+        uint32_t alpha;
+        uint32_t bytes_in_queue;
+        std::shared_ptr<SwitchBuffer> switch_buffer;
 };
 
 
-class ProbDropQueue : public Queue {
+class ProbDropQueue : public StaticQueue {
     public:
         ProbDropQueue(
                 uint32_t id, 
@@ -140,6 +198,7 @@ class ProbDropQueue : public Queue {
         virtual void enque(Packet *packet);
 
         double drop_prob;
+private:
 };
 
 #endif
