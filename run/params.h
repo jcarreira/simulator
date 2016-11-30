@@ -79,6 +79,10 @@ class DCExpParams {
         uint32_t agg_queue_size;
         uint32_t core_queue_size;
 
+        struct {
+            double alpha;
+        } shared_queue;
+
         double get_full_pkt_tran_delay(uint32_t size_in_byte = 1500)
         {
             return size_in_byte * 8 / this->bandwidth;

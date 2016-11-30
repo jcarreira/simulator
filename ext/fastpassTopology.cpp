@@ -70,7 +70,8 @@ FastpassTopology::FastpassTopology(
         core_switches.push_back(sw);
         switches.push_back(sw);
     }
-    ((FastpassAggSwitch*) agg_switches[0])->queue_to_arbiter = Factory::get_queue(num_agg_switches + num_core_switches, c1, params.queue_size, queue_type, 0, 3);
+    ((FastpassAggSwitch*) agg_switches[0])->queue_to_arbiter =
+        Factory::get_queue(num_agg_switches + num_core_switches, c1, params.queue_size, queue_type, 0, 3, nullptr);
 
 
     //Connect host queues

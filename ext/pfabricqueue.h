@@ -6,7 +6,7 @@
 
 #define PFABRIC_QUEUE 2
 
-class PFabricQueue : public Queue {
+class PFabricQueue : public StaticQueue {
     public:
         PFabricQueue(uint32_t id, double rate, uint32_t limit_bytes, int location);
         void enque(Packet *packet);

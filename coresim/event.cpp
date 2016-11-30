@@ -331,7 +331,8 @@ void LoggingEvent::process_event() {
     injected_packets = arrival_packets_count;
     duplicated_packets = duplicated_packets_received;
 
-    std::cout << current_time * 1e6 
+    std::cout << "LoggingEvent "
+        << " current time: " << current_time * 1e6 
         << " dead pkts: " << dead_packets 
         << " completed pkts: " << completed_packets 
         << " sent pkts: " << sentInTimeslot

@@ -10,7 +10,7 @@ extern DCExpParams params;
 
 /* PFabric Queue */
 PFabricQueue::PFabricQueue(uint32_t id, double rate, uint32_t limit_bytes, int location)
-    : Queue(id, rate, limit_bytes, location) {}
+    : StaticQueue(id, rate, limit_bytes, location) {}
 
 void PFabricQueue::enque(Packet *packet) {
     p_arrivals += 1;
@@ -18,7 +18,7 @@ void PFabricQueue::enque(Packet *packet) {
     packets.push_back(packet);
     setBytesInQueue(getBytesInQueue() + packet->size);
     packet->last_enque_time = get_current_time();
-    if (getBytesInQueue() > getLimitBytes()) {
+    if (getBytesInQueue() > getQueueLimitBytes()) {
         uint32_t worst_priority = 0;
         uint32_t worst_index = 0;
         for (uint32_t i = 0; i < packets.size(); i++) {

@@ -9,7 +9,7 @@
 
 #define DCTCP_QUEUE 5
 
-class DctcpQueue : public Queue {
+class DctcpQueue : public StaticQueue {
     public:
         DctcpQueue(uint32_t id, double rate, uint32_t limit_bytes, int location);
         void enque(Packet *packet);

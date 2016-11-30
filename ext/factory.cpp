@@ -30,12 +30,14 @@ Queue* Factory::get_queue(
         uint32_t queue_size, 
         uint32_t type,
         double drop_prob, 
-        int location
+        int location,
+        std::shared_ptr<SwitchBuffer> buffer
         ) { // Default drop_prob is 0.0
 
     switch(type) {
         case DROPTAIL_SHARED_QUEUE:
-            return new SharedQueue(id, rate, queue_size, location);
+            return 0;
+            return new SharedQueue(id, rate, buffer, location);
         case DROPTAIL_QUEUE:
             return new StaticQueue(id, rate, queue_size, location);
         case PFABRIC_QUEUE:

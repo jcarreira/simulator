@@ -5,6 +5,8 @@
 #include "../coresim/node.h"
 #include "../coresim/queue.h"
 
+#include <memory>
+
 /* Queue types */
 #define DROPTAIL_QUEUE 1
 #define PFABRIC_QUEUE 2
@@ -59,7 +61,8 @@ class Factory {
                 uint32_t queue_size, 
                 uint32_t type,
                 double drop_prob, 
-                int location
+                int location,
+                std::shared_ptr<SwitchBuffer> buffer
                 );
 
         static Host* get_host(
