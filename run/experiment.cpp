@@ -182,12 +182,12 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
     params.num_core_switches = 4;
     
     if (params.flow_type == FASTPASS_FLOW) {
-        exit(-1);
+        throw std::runtime_error("FASTPASS_FLOW");
         topology = new FastpassTopology(params.num_hosts, params.num_agg_switches,
                 params.num_core_switches, params.bandwidth, params.queue_type);
     }
     else if (params.big_switch) {
-        exit(-1);
+        throw std::runtime_error("big switch");
         topology = new BigSwitchTopology(params.num_hosts,
                 params.bandwidth, params.queue_type);
     } 

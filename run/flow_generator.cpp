@@ -61,8 +61,6 @@ void PoissonFlowGenerator::make_flows() {
 
     double lambda = params.bandwidth * params.load / (params.mean_flow_size * 8.0 / 1460 * 1500);
     double lambda_per_host = lambda / (topo->hosts.size() - 1);
-    //std::cout << "Lambda: " << lambda_per_host << std::endl;
-
 
     ExponentialRandomVariable *nv_intarr;
     if (params.burst_at_beginning)

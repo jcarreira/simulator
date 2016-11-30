@@ -39,8 +39,7 @@ Queue* Factory::get_queue(
     switch(type) {
         case DROPTAIL_SHARED_QUEUE:
             if (nullptr == buffer.get()) {
-                std::cerr << "Wrong buffer pointer for DROPTAIL_SHARED_QUEUE" << std::endl;
-                exit(-1);
+                throw std::runtime_error("Wrong buffer pointer for DROPTAIL_SHARED_QUEUE");
             }
             return new SharedQueue(id, rate, buffer, location);
         case DROPTAIL_QUEUE:

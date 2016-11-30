@@ -83,19 +83,26 @@ FlowCreationForInitializationEvent::~FlowCreationForInitializationEvent() {}
 
 void FlowCreationForInitializationEvent::process_event() {
     uint32_t id = flows_to_schedule.size();
-    uint64_t nvVal = (nv_bytes->value() + 0.5); // truncate(val + 0.5) equivalent to round to nearest int
+
+    // truncate(val + 0.5) equivalent to round to nearest int
+    uint64_t nvVal = (nv_bytes->value() + 0.5);
+
     if (nvVal > 2500000) {
-        std::cout << "Giant Flow! event.cpp::FlowCreation:" << 1000000.0 * time << " Generating new flow " << id << " of size " << (nvVal*1460) << " between " << src->id << " " << dst->id << "\n";
+        std::cout << "Giant Flow! event.cpp::FlowCreation:"
+            << 1000000.0 * time
+            << " Generating new flow " << id
+            << " of size " << (nvVal*1460)
+            << " between " << src->id << " " << dst->id << "\n";
         nvVal = 2500000;
     }
+
     uint32_t size = (uint32_t) nvVal * 1460;
     if (size != 0) {
-        flows_to_schedule.push_back(Factory::get_flow(id, time, size, src, dst, params.flow_type));
+        flows_to_schedule.push_back(
+                Factory::get_flow(id, time, size, src, dst, params.flow_type));
     }
 
     double tnext = time + nv_intarr->value();
-//        std::cout << "event.cpp::FlowCreation:" << 1000000.0 * time << " Generating new flow " << id << " of size "
-//         << size << " between " << src->id << " " << dst->id << " " << (tnext - get_current_time())*1e6 << "\n";
 
     add_to_event_queue(
             new FlowCreationForInitializationEvent(

@@ -83,7 +83,7 @@ PFabricTopology::PFabricTopology(
 
 Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
     if (q->getDst()->type == HOST) {
-        return NULL; // Packet Arrival
+        return nullptr; // Packet Arrival
     }
 
     // At host level
@@ -91,7 +91,8 @@ Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
         assert (p->src->id == q->getSrc()->id);
 
         if (p->src->id / 16 == p->dst->id / 16) {
-            return ((Switch *) q->getDst())->queues[p->dst->id % 16];
+            Switch* sw = dynamic_cast<Switch*>(q->getDst());
+            return sw->queues[p->dst->id % 16];
         } 
         else {
             uint32_t hash_port = 0;
@@ -101,21 +102,26 @@ Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
             }
             else if(params.load_balancing == 1)
                 hash_port = (p->src->id + p->dst->id + p->flow->id) % 4;
-            return ((Switch *) q->getDst())->queues[16 + hash_port];
+
+            Switch* sw_dst = dynamic_cast<Switch*>(q->getDst());
+            return sw_dst->queues[16 + hash_port];
         }
     }
 
     // At switch level
     if (q->getSrc()->type == SWITCH) {
-        if (((Switch *) q->getSrc())->switch_type == AGG_SWITCH) {
-            return ((Switch *) q->getDst())->queues[p->dst->id / 16];
+        Switch* sw_src = dynamic_cast<Switch*>(q->getSrc());
+        Switch* sw_dst = dynamic_cast<Switch*>(q->getDst());
+
+        if (sw_src->switch_type == AGG_SWITCH) {
+            return sw_dst->queues[p->dst->id / 16];
         }
-        if (((Switch *) q->getSrc())->switch_type == CORE_SWITCH) {
-            return ((Switch *) q->getDst())->queues[p->dst->id % 16];
+        if (sw_src->switch_type == CORE_SWITCH) {
+            return sw_dst->queues[p->dst->id % 16];
         }
     }
 
-    assert(false);
+    throw std::runtime_error("Error");
 }
 
 

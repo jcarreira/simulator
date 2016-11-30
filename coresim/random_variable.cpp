@@ -151,19 +151,15 @@ double NAryRandomVariable::value() {
 CDFRandomVariable::CDFRandomVariable(std::string filename)
  : EmpiricalRandomVariable(filename, false) {}
 
-double CDFRandomVariable::value() {
-  double val = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
-//  std::cout << "randval " << val << " ";
-  for (int i = 0; i < numEntry_; i++) {
-  //  std::cout << " cdf " << table_[i].cdf_ << " " << table_[i].val_ << " ";
-    if (val <= table_[i].cdf_) {
-    //  std::cout << " found\n";
-      return table_[i].val_;
-    }
-  }
-//  std::cout << " notfound " << table_[numEntry_-1].cdf_ << " " << table_[numEntry_-1].val_ << "\n";
-  return table_[numEntry_-1].val_;
-}
+ double CDFRandomVariable::value() {
+     double val = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+     for (int i = 0; i < numEntry_; i++) {
+         if (val <= table_[i].cdf_) {
+             return table_[i].val_;
+         }
+     }
+     return table_[numEntry_-1].val_;
+ }
 
 
 ConstantVariable::ConstantVariable(double value) : EmpiricalRandomVariable("", false)

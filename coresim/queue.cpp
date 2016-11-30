@@ -29,23 +29,23 @@ Queue::Queue(uint32_t id, double rate, int location) {
 
     this->busy = false;
     this->queue_proc_event = NULL;
-    //this->packet_propagation_event = NULL;
     this->location = location;
 
     if (params.ddc != 0) {
         if (location == 0) {
-            this->propagation_delay = 10e-9;
+            this->propagation_delay = 10e-9; /// ~2m from node to agg switch
         }
         else if (location == 1 || location == 2) {
-            this->propagation_delay = 400e-9;
+            this->propagation_delay = 400e-9; // ~80m from core to agg switch
         }
         else if (location == 3) {
-            this->propagation_delay = 210e-9;
+            this->propagation_delay = 210e-9; // 210 ns (~40m from host to agg switch)
         }
         else {
-            assert(false);
+            throw std::runtime_error("Wrong location");
         }
     } else {
+        throw std::runtime_error("Wrong propagation delay");
         this->propagation_delay = params.propagation_delay;
     }
     this->p_arrivals = 0; this->p_departures = 0;
@@ -64,8 +64,7 @@ void Queue::set_src_dst(Node *src, Node *dst) {
 
 void Queue::open_file() const {
     if (params.shared_queue.log_file == "") {
-        std::cerr << "Wrong lof file name";
-        exit(-1);
+        throw std::runtime_error("Wrong lof file name");
     }
 
     std::cout << "Opening log file: "
@@ -77,8 +76,7 @@ void Queue::open_file() const {
                 std::ofstream::out));// | std::ofstream::app));
 
     if (!log_file->is_open()) {
-        std::cerr << "Error opening the file" << std::endl;
-        exit(-1);
+        throw std::runtime_error("Error opening the file");
     }
 }
 
@@ -102,7 +100,7 @@ void Queue::log_queue_utilization() const {
 
         if (log_file.get() == nullptr) {
             std::cerr << "Wrong handle " << log_file.get() << std::endl;
-            exit(-1);
+            throw std::runtime_error("");
         }
         (*log_file) << get_current_time() << " " << id << " "
             << src->id << " "
@@ -251,7 +249,9 @@ SharedQueue::SharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer>
     std::cerr << "Creating shared queue " 
         << " id: " << id
         << " alpha: " << alpha
-        << std::endl;
+        << " propagation_delay: " << propagation_delay
+        << " location: " << location
+        << '\n';
 }
 
 void SharedQueue::check_unfair_drops() const {

@@ -9,16 +9,6 @@
 
 extern DCExpParams params;
 
-//bool FlowComparator::operator() (Flow *a, Flow *b) {
-//    return a->flow_priority > b->flow_priority;
-//    //  if(a->flow_priority > b->flow_priority)
-//    //    return true;
-//    //  else if(a->flow_priority == b->flow_priority)
-//    //    return a->id > b->id;
-//    //  else
-//    //    return false;
-//}
-
 Node::Node(uint32_t id, uint32_t type) {
     this->id = id;
     this->type = type;
@@ -49,7 +39,7 @@ CoreSwitch::CoreSwitch(uint32_t id, uint32_t nq, double rate, uint32_t type) : S
     std::cerr << "Creating core switch id: " << id << std::endl;
 
     if (params.use_shared_queue == 1) {
-        buffer.reset(new SwitchBuffer(params.queue_size));
+        buffer = std::make_shared<SwitchBuffer>(params.queue_size);
     } else {
         buffer = nullptr;
     }
@@ -75,10 +65,12 @@ AggSwitch::AggSwitch(
             params.use_shared_queue ? new SwitchBuffer(params.queue_size)
                                     : nullptr);
 
+    // hosts queues
     for (uint32_t i = 0; i < nq1; i++) {
         queues.push_back(Factory::get_queue(i, r1, params.queue_size, type, 0, 3, buffer));
     }
 
+    // core queues
     for (uint32_t i = 0; i < nq2; i++) {
         queues.push_back(Factory::get_queue(i, r2, params.queue_size, type, 0, 1, buffer));
     }

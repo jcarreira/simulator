@@ -283,8 +283,7 @@ uint32_t Flow::get_priority(uint32_t seq) {
 void Flow::increase_cwnd() {
     cwnd_mss += 1;
     if (cwnd_mss > max_cwnd) {
-        std::cerr << "Capping congestion window size" << std::endl;
-        exit(-1);
+        throw std::runtime_error("Capping congestion window size");
         cwnd_mss = max_cwnd;
     }
 }
