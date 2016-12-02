@@ -13,6 +13,7 @@
 #include "packet.h"
 #include "topology.h"
 #include "debug.h"
+#include <mutex>
 
 #include "../ext/factory.h"
 
@@ -54,6 +55,8 @@ extern int get_event_queue_size();
 
 uint32_t Event::instance_count = 0;
 
+std::ofstream fct_fout;
+
 Event::Event(uint32_t type, double time) {
     this->type = type;
     this->time = time;
@@ -85,7 +88,7 @@ void FlowCreationForInitializationEvent::process_event() {
     uint32_t id = flows_to_schedule.size();
 
     // truncate(val + 0.5) equivalent to round to nearest int
-    uint64_t nvVal = (nv_bytes->value() + 0.5);
+    uint64_t nvVal = (nv_bytes->value() + 0.5); // number of packets
 
     if (nvVal > 2500000) {
         std::cout << "Giant Flow! event.cpp::FlowCreation:"
@@ -97,9 +100,16 @@ void FlowCreationForInitializationEvent::process_event() {
     }
 
     uint32_t size = (uint32_t) nvVal * 1460;
+    
     if (size != 0) {
-        flows_to_schedule.push_back(
-                Factory::get_flow(id, time, size, src, dst, params.flow_type));
+        auto new_flow = Factory::get_flow(id, time, size, src, dst, params.flow_type);
+    
+        if (params.flow_classes.use && size < params.flow_classes.threshold) {
+            new_flow->queue_priority = HIGH_QUEUE_PRIO;
+        }
+        
+        // schedule flow
+        flows_to_schedule.push_back(new_flow);
     }
 
     double tnext = time + nv_intarr->value();
@@ -232,7 +242,7 @@ QueueProcessingEvent::QueueProcessingEvent(double time, Queue *queue)
 
 QueueProcessingEvent::~QueueProcessingEvent() {
     if (queue->getQueueProcEvent() == this) {
-        queue->setQueueProcEvent(NULL);
+        queue->setQueueProcEvent(nullptr);
         queue->getBusy() = false; //TODO is this ok??
     }
 }
@@ -254,7 +264,7 @@ void QueueProcessingEvent::process_event() {
         queue->setQueueProcEvent(new QueueProcessingEvent(time + td, queue));
         add_to_event_queue(queue->getQueueProcEvent());
         queue->getBusyEvents().push_back(queue->getQueueProcEvent());
-        if (next_hop == NULL) {
+        if (next_hop == nullptr) {
 #ifdef DEBUG
             std::cout << "Creating PacketArrivalEvent. time: " << time
                 << " td: " << td
@@ -264,7 +274,7 @@ void QueueProcessingEvent::process_event() {
             add_to_event_queue(arrival_evt);
             queue->getBusyEvents().push_back(arrival_evt);
         } else {
-            Event* queuing_evt = NULL;
+            Event* queuing_evt = nullptr;
             if (params.cut_through == 1) {
                 double cut_through_delay =
                     queue->get_transmission_delay(packet->flow->hdr_size);
@@ -284,8 +294,8 @@ void QueueProcessingEvent::process_event() {
     } else {
         queue->setBusy(false);
         queue->getBusyEvents().clear();
-        queue->setPacketTransmitting(NULL);
-        queue->setQueueProcEvent(NULL);
+        queue->setPacketTransmitting(nullptr);
+        queue->setQueueProcEvent(nullptr);
     }
 }
 
@@ -326,8 +336,8 @@ void LoggingEvent::process_event() {
     uint32_t theoretical_injection_rate = params.bandwidth * params.num_hosts * params.load * 0.01 / ((params.mss + params.hdr_size) * 8);
    
     uint32_t totalSentFromHosts = 0;
-    for (auto h = (topology->hosts).begin(); h != (topology->hosts).end(); h++) {
-        totalSentFromHosts += (*h)->queue->getPacketDepartures();
+    for (auto& h : topology->hosts) {
+        totalSentFromHosts += h->queue->getPacketDepartures();
     }
     uint32_t sentInTimeslot = (totalSentFromHosts - sent_packets) / 2;
     uint32_t injectedInTimeslot = arrival_packets_count - injected_packets;
@@ -344,16 +354,16 @@ void LoggingEvent::process_event() {
     Stats buffer_occupancy;
     Stats agg_buffer_occupancy;
     Stats core_buffer_occupancy;
-    for (auto s = topology->switches.begin(); s != topology->switches.end(); s++) {
-        buffer_occupancy += (*s)->getBufferOccupancy();
+    for (auto& s : topology->switches) {
+        buffer_occupancy += s->getBufferOccupancy();
     }
 
     PFabricTopology* pTopology = dynamic_cast<PFabricTopology*>(topology);
-    for (auto s = pTopology->agg_switches.begin(); s != pTopology->agg_switches.end(); s++) {
-        agg_buffer_occupancy += (*s)->getBufferOccupancy();
+    for (auto& s : pTopology->agg_switches) {
+        agg_buffer_occupancy += s->getBufferOccupancy();
     }
-    for (auto s = pTopology->core_switches.begin(); s != pTopology->core_switches.end(); s++) {
-        core_buffer_occupancy += (*s)->getBufferOccupancy();
+    for (auto& s : pTopology->core_switches) {
+        core_buffer_occupancy += s->getBufferOccupancy();
     }
 
     std::cout << "LoggingEvent " << '\n'
@@ -416,6 +426,15 @@ FlowFinishedEvent::FlowFinishedEvent(double time, Flow *flow)
 
 FlowFinishedEvent::~FlowFinishedEvent() {}
 
+void open_fct_log(const std::string& filename) {
+    if (filename == "")
+        throw std::runtime_error("Wrong filename: " + filename);
+
+    std::cout << "Opening fliename: " << filename << std::endl;
+
+    fct_fout.open(filename, std::fstream::out);
+}
+
 void FlowFinishedEvent::process_event() {
     this->flow->finished = true;
     this->flow->finish_time = get_current_time();
@@ -428,8 +447,11 @@ void FlowFinishedEvent::process_event() {
     assert(slowdown >= 1.0);
 
     if (print_flow_result()) {
-        std::cout << std::setprecision(4) << std::fixed ;
-        std::cout
+
+
+        std::stringstream ss;
+
+        ss << std::setprecision(9) << std::fixed
             << flow->id << " "
             << flow->size << " "
             << flow->src->id << " "
@@ -442,13 +464,26 @@ void FlowFinishedEvent::process_event() {
             << flow->total_pkt_sent << "/" << (flow->size/flow->mss) << "//" << flow->received_count << " "
             << flow->data_pkt_drop << "/" << flow->ack_pkt_drop << "/" << flow->pkt_drop << " "
             << 1000000 * (flow->first_byte_send_time - flow->start_time) << " "
+            << flow->queue_priority
             << '\n';
+
+        if (params.log_fct == 1) {
+            params.log_fct = 2;
+            open_fct_log(params.fct_filename);
+        }
+
+        if (params.log_fct) {
+            fct_fout << ss.str();
+        }
+
+        std::cout << std::setprecision(4) << std::fixed
+            << ss.str();
 
         if (flow->id % 10000 == 0) {
             std::cout << (*flow) << std::endl;
         }
 
-        std::cout << std::setprecision(9) << std::fixed;
+        std::cout << ss.str();
     }
 }
 
@@ -461,7 +496,7 @@ FlowProcessingEvent::FlowProcessingEvent(double time, Flow *flow)
 
 FlowProcessingEvent::~FlowProcessingEvent() {
     if (flow->flow_proc_event == this) {
-        flow->flow_proc_event = NULL;
+        flow->flow_proc_event = nullptr;
     }
 }
 
@@ -478,7 +513,7 @@ RetxTimeoutEvent::RetxTimeoutEvent(double time, Flow *flow)
 
 RetxTimeoutEvent::~RetxTimeoutEvent() {
     if (flow->retx_event == this) {
-        flow->retx_event = NULL;
+        flow->retx_event = nullptr;
     }
 }
 

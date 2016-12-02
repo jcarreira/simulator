@@ -8,9 +8,6 @@
 #include <fstream>
 #include <iostream>
 
-#define DROPTAIL_QUEUE 1
-#define DROPTAIL_SHARED_QUEUE 100
-
 class Node;
 class Packet;
 class Event;
@@ -173,7 +170,7 @@ protected:
 class SharedQueue : public Queue {
     public:
         SharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location);
-        virtual ~SharedQueue() {}
+        virtual ~SharedQueue() = default;
 
         virtual uint32_t getQueueLimitBytes() const override {
             uint32_t queueLimitBytes = alpha * switch_buffer->getFreeSize();
@@ -223,6 +220,48 @@ class ProbDropQueue : public StaticQueue {
 
         double drop_prob;
 private:
+};
+
+//XXX fix this
+class MultiSharedQueue : public Queue {
+    public:
+        MultiSharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location);
+        virtual ~MultiSharedQueue() = default;
+
+        virtual uint32_t getQueueLimitBytes() const override {
+            uint32_t queueLimitBytes = alpha * switch_buffer->getFreeSize();
+            return queueLimitBytes;
+        }
+        
+        void drop(Packet *packet) override;
+        
+        uint32_t getBytesInQueue() const override {
+            return bytes_in_queue;
+        }
+
+        void setBytesInQueue(uint32_t bytes) override {
+            // update the buffer occupancy
+            if (bytes > bytes_in_queue) {
+                switch_buffer->setBufferOccupancy(
+                        switch_buffer->getBufferOccupancy() + (bytes - bytes_in_queue));
+            } else {
+                switch_buffer->setBufferOccupancy(
+                        switch_buffer->getBufferOccupancy() - (bytes_in_queue - bytes));
+            }
+            bytes_in_queue = bytes;
+        }
+        
+        virtual void enque(Packet *packet) override;
+        virtual Packet* deque() override;
+        
+        virtual void check_unfair_drops() const;
+        
+    protected:
+        uint32_t alpha;
+        uint32_t alpha_prio;
+        uint32_t alpha_back;
+        uint32_t bytes_in_queue;
+        std::shared_ptr<SwitchBuffer> switch_buffer;
 };
 
 #endif

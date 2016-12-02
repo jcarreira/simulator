@@ -75,9 +75,12 @@ class DCExpParams {
         uint32_t dctcp_mark_thresh;
         //uint32_t dctcp_delayed_ack_freq;
         
-        uint32_t use_shared_queue;
-        uint32_t agg_queue_size;
-        uint32_t core_queue_size;
+        uint32_t use_shared_queue = 0;
+        uint32_t agg_queue_size = 0;
+        uint32_t core_queue_size = 0;
+
+        uint32_t log_fct = 0;
+        std::string fct_filename = "";
 
         struct {
             char     use = 0;

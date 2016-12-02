@@ -11,6 +11,11 @@ class Probe;
 class RetxTimeoutEvent;
 class FlowProcessingEvent;
 
+enum QueuePriority {
+    LOW_QUEUE_PRIO = 0,
+    HIGH_QUEUE_PRIO = 1
+};
+
 class Flow {
     public:
         Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d);
@@ -34,6 +39,9 @@ class Flow {
         virtual void increase_cwnd();
         virtual double get_avg_queuing_delay_in_us();
 
+        //
+        // attributes go here
+        //
         uint32_t id;
         double start_time;
         double finish_time;
@@ -85,6 +93,33 @@ class Flow {
         uint32_t ack_pkts_received = 0;
         uint32_t duplicate_pkts_received = 0;
         double total_ack_queueing_time = 0;
+        QueuePriority queue_priority = LOW_QUEUE_PRIO;
+};
+
+class UDPFlow : public Flow {
+        virtual void send_pending_data(); // change this
+        virtual Packet *send(uint32_t seq); // need this
+        void receive_data_pkt(Packet* p); // change this
+        virtual void receive(Packet *p); // maybe change this
+        
+        // we override these and throw error if they are called
+        // these shouldn't be used in UDP
+        virtual void send_ack(uint32_t seq, std::vector<uint32_t> sack_list)
+        { throw std::runtime_error("dont call"); }
+        virtual void receive_ack(uint32_t ack, std::vector<uint32_t> sack_list)
+        { throw std::runtime_error("dont call"); }
+        virtual void set_timeout(double time) override
+        { throw std::runtime_error("dont call"); }
+        virtual void handle_timeout() override
+        { throw std::runtime_error("dont call"); }
+        virtual void cancel_retx_event() override
+        { throw std::runtime_error("dont call"); }
+        virtual uint32_t get_priority(uint32_t seq) override
+        { throw std::runtime_error("dont call"); }
+        virtual void increase_cwnd() override
+        { throw std::runtime_error("dont call"); }
+
+       // virtual double get_avg_queuing_delay_in_us();
 };
 
 std::ostream& operator<< (std::ostream& os, const Flow& flow);

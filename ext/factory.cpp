@@ -138,7 +138,7 @@ Host* Factory::get_host(
             break;
     }
     std::cerr << host_type << " unknown\n";
-    assert(false);
-    return NULL;
+    throw std::runtime_error("Unknown host type");
+    return nullptr;
 }
 

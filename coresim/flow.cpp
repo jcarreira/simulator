@@ -29,8 +29,8 @@ Flow::Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d) {
 
     this->next_seq_no = 0;
     this->last_unacked_seq = 0;
-    this->retx_event = NULL;
-    this->flow_proc_event = NULL;
+    this->retx_event = nullptr;
+    this->flow_proc_event = nullptr;
 
     this->received_bytes = 0;
     this->recv_till = 0;
@@ -73,18 +73,14 @@ void Flow::send_pending_data() {
     if (last_unacked_seq < size) {
         uint32_t seq = next_seq_no;
         uint32_t window = cwnd_mss * mss + scoreboard_sack_bytes;
-    
+
+        // this seems to round flow sizes to packets    
         while ((seq + mss <= last_unacked_seq + window) &&
                 (seq + mss <= size)) {
-            // TODO Make it explicit through the SACK list
-            //if (received.count(seq) == 0) {
-         //       if (id == 90981) {
-         //           std::cout << "90981 send seq: " << seq << std::endl;
-         //       }
                 send(seq);
             next_seq_no = seq + mss;
             seq += mss;
-            if (retx_event == NULL) {
+            if (retx_event == nullptr) {
                 set_timeout(get_current_time() + retx_timeout);
             }
         }
@@ -92,7 +88,7 @@ void Flow::send_pending_data() {
 }
 
 Packet *Flow::send(uint32_t seq) {
-    Packet *p = NULL;
+    Packet *p = nullptr;
 
     if (first_byte_send_time == -1)
         first_byte_send_time = get_current_time();
@@ -149,7 +145,7 @@ void Flow::receive_ack(uint32_t ack, std::vector<uint32_t> sack_list) {
         send_pending_data();
 
         // Update the retx timer
-        if (retx_event != NULL) { // Try to move
+        if (retx_event != nullptr) { // Try to move
             cancel_retx_event();
             if (last_unacked_seq < size) {
                 // Move the timeout to last_unacked_seq
@@ -189,7 +185,7 @@ void Flow::receive(Packet *p) {
         this->receive_data_pkt(p);
     }
     else {
-        assert(false);
+        throw std::runtime_error("Wrong type of packet");
     }
 
     delete p;
@@ -262,7 +258,7 @@ void Flow::cancel_retx_event() {
     if (retx_event) {
         retx_event->cancelled = true;
     }
-    retx_event = NULL;
+    retx_event = nullptr;
 }
 
 
@@ -322,4 +318,61 @@ std::ostream& operator<< (std::ostream& os, const Flow& flow) {
         << " total_ack_queueing_time: " << flow.total_ack_queueing_time
         << '\n';
     return os;
+}
+
+void UDPFlow::send_pending_data() {
+    // this seems to round flow sizes to packets    
+    uint32_t seq = next_seq_no;
+    while (seq + mss <= size) {
+        send(seq);
+        seq += mss;
+    }
+}
+
+Packet *UDPFlow::send(uint32_t seq) {
+    Flow::send(seq); // should be fine
+}
+
+void UDPFlow::receive_data_pkt(Packet* p) {
+    received_count++;
+    total_queuing_time += p->total_queuing_delay;
+
+    // we just keep track of which files we have received
+    // but this is really not necessary for UDP
+    if (received.count(p->seq_no) == 0) {
+        received[p->seq_no] = true;
+        if(num_outstanding_packets >= ((p->size - hdr_size) / (mss)))
+            num_outstanding_packets -= ((p->size - hdr_size) / (mss));
+        else
+            num_outstanding_packets = 0;
+        received_bytes += (p->size - hdr_size);
+    } else {
+        ::duplicated_packets_received += 1;
+        this->duplicate_pkts_received += 1;
+    }
+    if (p->seq_no > max_seq_no_recv) {
+        max_seq_no_recv = p->seq_no;
+    }
+}
+
+void UDPFlow::receive(Packet *p) {
+    if (finished) {
+        delete p; // we shouldnt have to do this
+        return;
+    }
+
+    if (p->type == ACK_PACKET) {
+        throw std::runtime_error("ACK packet in UDP");
+    }
+    else if(p->type == NORMAL_PACKET) {
+        if (this->first_byte_receive_time == -1) {
+            this->first_byte_receive_time = get_current_time();
+        }
+        this->receive_data_pkt(p);
+    }
+    else {
+        throw std::runtime_error("Wrong type of packet");
+    }
+
+    delete p;
 }

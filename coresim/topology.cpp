@@ -9,6 +9,9 @@ extern DCExpParams params;
    */
 Topology::Topology() {}
 
+// PUT this somewhere more global (?)
+const auto HOSTS_PER_RACK = 16;
+
 /*
  * PFabric topology with 144 hosts (16, 9, 4)
  */
@@ -50,7 +53,7 @@ PFabricTopology::PFabricTopology(
 
     //Connect host queues
     for (uint32_t i = 0; i < num_hosts; i++) {
-        hosts[i]->queue->set_src_dst(hosts[i], agg_switches[i/16]);
+        hosts[i]->queue->set_src_dst(hosts[i], agg_switches[i / HOSTS_PER_RACK]);
         //std::cout << "Linking Host " << i << " to Agg " << i/16 << "\n";
     }
 
@@ -59,12 +62,12 @@ PFabricTopology::PFabricTopology(
         // Queues to Hosts
         for (uint32_t j = 0; j < hosts_per_agg_switch; j++) { // TODO make generic
             Queue *q = agg_switches[i]->queues[j];
-            q->set_src_dst(agg_switches[i], hosts[i * 16 + j]);
+            q->set_src_dst(agg_switches[i], hosts[i * HOSTS_PER_RACK + j]);
             //std::cout << "Linking Agg " << i << " to Host" << i * 16 + j << "\n";
         }
         // Queues to Core
         for (uint32_t j = 0; j < num_core_switches; j++) {
-            Queue *q = agg_switches[i]->queues[j + 16];
+            Queue *q = agg_switches[i]->queues[j + HOSTS_PER_RACK];
             q->set_src_dst(agg_switches[i], core_switches[j]);
             //std::cout << "Linking Agg " << i << " to Core" << j << "\n";
         }
@@ -75,11 +78,13 @@ PFabricTopology::PFabricTopology(
         for (uint32_t j = 0; j < num_agg_switches; j++) {
             Queue *q = core_switches[i]->queues[j];
             q->set_src_dst(core_switches[i], agg_switches[j]);
-            //std::cout << "Linking Core " << i << " to Agg" << j << "\n";
         }
     }
 }
 
+bool nodes_same_rack(Node* n1, Node* n2) {
+    return (n1->id / HOSTS_PER_RACK) == (n2->id / HOSTS_PER_RACK);
+}
 
 Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
     if (q->getDst()->type == HOST) {
@@ -87,24 +92,23 @@ Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
     }
 
     // At host level
-    if (q->getSrc()->type == HOST) { // Same Rack or not
+    if (q->getSrc()->type == HOST) {
         assert (p->src->id == q->getSrc()->id);
 
-        if (p->src->id / 16 == p->dst->id / 16) {
-            Switch* sw = dynamic_cast<Switch*>(q->getDst());
-            return sw->queues[p->dst->id % 16];
-        } 
-        else {
+        if (nodes_same_rack(p->src, p->dst)) {
+            Switch* sw_dst = dynamic_cast<Switch*>(q->getDst());
+            return sw_dst->queues[p->dst->id % HOSTS_PER_RACK];
+        } else {
             uint32_t hash_port = 0;
-            if(params.load_balancing == 0) {
+            if (params.load_balancing == 0) {
                 hash_port = q->getSprayCounter() % 4;
                 q->incSprayCounter();
             }
-            else if(params.load_balancing == 1)
-                hash_port = (p->src->id + p->dst->id + p->flow->id) % 4;
+            else if (params.load_balancing == 1)
+                hash_port = (p->src->id + p->dst->id + p->flow->id) % 4; // ECMP
 
             Switch* sw_dst = dynamic_cast<Switch*>(q->getDst());
-            return sw_dst->queues[16 + hash_port];
+            return sw_dst->queues[HOSTS_PER_RACK + hash_port];
         }
     }
 
@@ -113,12 +117,14 @@ Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
         Switch* sw_src = dynamic_cast<Switch*>(q->getSrc());
         Switch* sw_dst = dynamic_cast<Switch*>(q->getDst());
 
-        if (sw_src->switch_type == AGG_SWITCH) {
-            return sw_dst->queues[p->dst->id / 16];
-        }
-        if (sw_src->switch_type == CORE_SWITCH) {
-            return sw_dst->queues[p->dst->id % 16];
-        }
+        switch (sw_src->switch_type) {
+            case AGG_SWITCH:
+                return sw_dst->queues[p->dst->id / HOSTS_PER_RACK];
+            case CORE_SWITCH:
+                return sw_dst->queues[p->dst->id % HOSTS_PER_RACK];
+            default:
+                throw std::runtime_error("Wrong switch type");
+        };
     }
 
     throw std::runtime_error("Error");
@@ -127,10 +133,13 @@ Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
 
 double PFabricTopology::get_oracle_fct(Flow *f) {
     int num_hops = 4;
-    if (f->src->id/16 == f->dst->id/16) {
+
+    if (nodes_same_rack(f->src, f->dst)) {
         num_hops = 2;
     }
-    double propagation_delay;
+
+    // XXX Check this!
+    double propagation_delay = 0;
     if (params.ddc != 0) { 
         if (num_hops == 2) {
             propagation_delay = 0.440;
@@ -140,12 +149,13 @@ double PFabricTopology::get_oracle_fct(Flow *f) {
         }
     }
     else {
+        throw std::runtime_error("Wrong ddc config");
         propagation_delay = 2 * 1000000.0 * num_hops * f->src->queue->getPropagationDelay();
     }
     
     uint32_t np = ceil(f->size / params.mss); // TODO: Must be a multiple of 1460
     double bandwidth = f->src->queue->getRate() / 1000000.0; // For us
-    double transmission_delay;
+    double transmission_delay = 0;
     if (params.cut_through) {
         transmission_delay = 
             (
@@ -155,9 +165,8 @@ double PFabricTopology::get_oracle_fct(Flow *f) {
             ) * 8.0 / bandwidth;
         if (num_hops == 4) {
             //1 packet and 1 ack
-            transmission_delay += 2 * (2*params.hdr_size) * 8.0 / (4 * bandwidth);
+            transmission_delay += 2 * (2 * params.hdr_size) * 8.0 / (4 * bandwidth);
         }
-        //std::cout << "pd: " << propagation_delay << " td: " << transmission_delay << std::endl;
     }
     else {
         transmission_delay = 
@@ -206,7 +215,7 @@ BigSwitchTopology::BigSwitchTopology(
 Queue* BigSwitchTopology::get_next_hop(Packet *p, Queue *q) {
     if (q->getDst()->type == HOST) {
         assert(p->dst->id == q->getDst()->id);
-        return NULL; // Packet Arrival
+        return nullptr; // Packet Arrival
     }
 
     // At host level

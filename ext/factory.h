@@ -6,30 +6,39 @@
 #include "../coresim/queue.h"
 
 /* Queue types */
-#define DROPTAIL_QUEUE 1
-#define PFABRIC_QUEUE 2
-#define PROB_DROP_QUEUE 4
-#define DCTCP_QUEUE 5
-#define DROPTAIL_SHARED_QUEUE 100
+
+enum QueueType {
+    DROPTAIL_QUEUE = 1,
+    PFABRIC_QUEUE = 2,
+    PROB_DROP_QUEUE = 4,
+    DCTCP_QUEUE = 5,
+    DROPTAIL_SHARED_QUEUE = 100
+};
 
 /* Flow types */
-#define NORMAL_FLOW 1
-#define PFABRIC_FLOW 2
-#define VANILLA_TCP_FLOW 42
-#define DCTCP_FLOW 43
-#define CAPABILITY_FLOW 112
-#define MAGIC_FLOW 113
-#define FASTPASS_FLOW 114
-#define IDEAL_FLOW 120
+enum FlowType {
+    NORMAL_FLOW = 1,
+    PFABRIC_FLOW = 2,
+    VANILLA_TCP_FLOW = 42,
+    DCTCP_FLOW = 43,
+    CAPABILITY_FLOW = 112,
+    MAGIC_FLOW = 113,
+    FASTPASS_FLOW = 114,
+    IDEAL_FLOW = 120
+};
+
 
 /* Host types */
-#define NORMAL_HOST 1
-#define SCHEDULING_HOST 2
-#define CAPABILITY_HOST 12
-#define MAGIC_HOST 13
-#define FASTPASS_HOST 14
-#define FASTPASS_ARBITER 10
-#define IDEAL_HOST 20
+
+enum HostType {
+    NORMAL_HOST = 1,
+    SCHEDULING_HOST = 2,
+    CAPABILITY_HOST = 12,
+    MAGIC_HOST = 13,
+    FASTPASS_HOST = 14,
+    FASTPASS_ARBITER = 10,
+    IDEAL_HOST = 20
+};
 
 class Factory {
     public:

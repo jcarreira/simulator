@@ -10,7 +10,7 @@
 
 #include "../run/params.h"
 
-extern double get_current_time(); // TODOm
+extern double get_current_time();
 extern void add_to_event_queue(Event* ev);
 extern uint32_t dead_packets;
 extern uint32_t unfair_drops;
@@ -20,7 +20,6 @@ uint32_t Queue::instance_count = 0;
 
 std::unique_ptr<std::ofstream> Queue::log_file;
 
-
 /* Queues */
 Queue::Queue(uint32_t id, double rate, int location) {
     this->id = id;
@@ -28,18 +27,20 @@ Queue::Queue(uint32_t id, double rate, int location) {
     this->rate = rate; // in bps
 
     this->busy = false;
-    this->queue_proc_event = NULL;
+    this->queue_proc_event = nullptr;
     this->location = location;
 
     if (params.ddc != 0) {
+        // check this! very optimistic
+        // RTT at google = 10-20us
         if (location == 0) {
-            this->propagation_delay = 10e-9; /// ~2m from node to agg switch
+            this->propagation_delay = 100e-9; /// 100ns ~20m from node to agg switch
         }
         else if (location == 1 || location == 2) {
-            this->propagation_delay = 400e-9; // ~80m from core to agg switch
+            this->propagation_delay = 1e-6; // 1us ~200m from core to agg switch
         }
         else if (location == 3) {
-            this->propagation_delay = 210e-9; // 210 ns (~40m from host to agg switch)
+            this->propagation_delay = 1e-6; // 1us (~200m from core to agg switch)
         }
         else {
             throw std::runtime_error("Wrong location");
@@ -53,8 +54,7 @@ Queue::Queue(uint32_t id, double rate, int location) {
 
     this->pkt_drop = 0;
     this->spray_counter=std::rand();
-    this->packet_transmitting = NULL;
-
+    this->packet_transmitting = nullptr;
 }
 
 void Queue::set_src_dst(Node *src, Node *dst) {
@@ -152,7 +152,7 @@ Packet *Queue::deque() {
         b_departures += p->size;
         return p;
     }
-    return NULL;
+    return nullptr;
 }
 
 void Queue::drop(Packet *packet) {
@@ -207,8 +207,8 @@ void Queue::preempt_current_transmission() {
         busy_events.clear();
         //drop(packet_transmitting);//TODO: should be put back to queue
         enque(packet_transmitting);
-        packet_transmitting = NULL;
-        queue_proc_event = NULL;
+        packet_transmitting = nullptr;
+        queue_proc_event = nullptr;
         busy = false;
     }
 }
@@ -304,7 +304,79 @@ void SharedQueue::enque(Packet *packet) {
 Packet* SharedQueue::deque() {
     Packet* p = Queue::deque();
 
-    if (p != NULL && getBytesInQueue() == 0) {
+    if (p != nullptr && getBytesInQueue() == 0) {
+        switch_buffer->decActiveQueues();
+    }
+
+    return p;
+}
+
+
+MultiSharedQueue::MultiSharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location) :
+    Queue(id, rate, location),
+    alpha_prio(params.shared_queue.alpha_prio),
+    alpha_back(params.shared_queue.alpha_back),
+    switch_buffer(buffer) {
+
+    std::cerr << "Creating shared multi-queue " 
+        << " id: " << id
+        << " alpha: " << alpha
+        << " propagation_delay: " << propagation_delay
+        << " location: " << location
+        << '\n';
+}
+
+void MultiSharedQueue::check_unfair_drops() const {
+    if (getBytesInQueue() <
+            switch_buffer->getBufferSize() / switch_buffer->getActiveQueues()) {
+        unfair_drops++;
+    }
+}
+
+void MultiSharedQueue::drop(Packet *packet) {
+#ifdef DEBUG
+        std::cerr << "WARNING: Dropping packet. id: " << id 
+            << " label: " << src->getLabel()
+            << " queue limit_bytes: " << getQueueLimitBytes()
+            << " bytes_in_queue: " << getBytesInQueue()
+            << " buffer size: " << switch_buffer->getBufferSize()
+            << " buffer occupancy: " << switch_buffer->getBufferOccupancy()
+            << " alpha: " << alpha
+            << std::endl;
+#endif
+
+    check_unfair_drops();
+
+    Queue::drop(packet);
+
+    if (getBytesInQueue() == 0) {
+        switch_buffer->decActiveQueues();
+    }
+}
+
+void MultiSharedQueue::enque(Packet *packet) {
+#ifdef DEBUG
+    std::cerr << "Enqueing packet. "
+        << " queue id: " << id
+        << " Buffer size: " << switch_buffer->getBufferSize()
+        << " Buffer occupancy: " << switch_buffer->getBufferOccupancy()
+        << " bytes in queue: " << getBytesInQueue()
+        << " queue limit bytes: " << getQueueLimitBytes()
+        << " queue type: " << src->type
+        << std::endl;
+#endif
+
+    if (getBytesInQueue() == 0) {
+        switch_buffer->incActiveQueues();
+    }
+
+    Queue::enque(packet);
+}
+
+Packet* MultiSharedQueue::deque() {
+    Packet* p = Queue::deque();
+
+    if (p != nullptr && getBytesInQueue() == 0) {
         switch_buffer->decActiveQueues();
     }
 
