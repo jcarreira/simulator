@@ -42,6 +42,15 @@ class Packet {
         double last_enque_time;
 
         int capa_data_seq;
+
+        // compare according to flows priority
+        bool operator<(const Packet& p) const {
+            if (flow->queue_priority != p.flow->queue_priority) {
+                return flow->queue_priority < p.flow->queue_priority;
+            } else {
+                return unique_id < p.unique_id;
+            }
+        }
 };
 
 class PlainAck : public Packet {

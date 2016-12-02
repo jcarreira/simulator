@@ -7,6 +7,8 @@
 #include <memory>
 #include <fstream>
 #include <iostream>
+#include <queue>
+#include <cassert>
 
 class Node;
 class Packet;
@@ -14,6 +16,11 @@ class Event;
 
 class QueueProcessingEvent;
 class PacketPropagationEvent;
+
+enum QueuePriority {
+    LOW_QUEUE_PRIO = 0,
+    HIGH_QUEUE_PRIO = 1
+};
 
 class Queue {
     public:
@@ -115,7 +122,7 @@ class StaticQueue : public Queue {
         return limit_bytes_;
     }
 
-private:
+protected:
     uint32_t bytes_in_queue;
     uint32_t limit_bytes_;
 
@@ -226,41 +233,47 @@ private:
 class MultiSharedQueue : public Queue {
     public:
         MultiSharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location);
-        virtual ~MultiSharedQueue() = default;
+        ~MultiSharedQueue() = default;
 
+        // XXX this depends on the type of packet
+        // because alpha depends on the type of packet
         virtual uint32_t getQueueLimitBytes() const override {
-            uint32_t queueLimitBytes = alpha * switch_buffer->getFreeSize();
-            return queueLimitBytes;
+            throw std::runtime_error("we shouldnt use this. big hack.");
         }
-        
-        void drop(Packet *packet) override;
-        
+
+        // bytes for specific priority
+        uint32_t getBytesInQueue(QueuePriority prio) const;
         uint32_t getBytesInQueue() const override {
+            assert(bytes_in_queue == bytes_in_queue_prio + bytes_in_queue_back);
             return bytes_in_queue;
         }
-
-        void setBytesInQueue(uint32_t bytes) override {
-            // update the buffer occupancy
-            if (bytes > bytes_in_queue) {
-                switch_buffer->setBufferOccupancy(
-                        switch_buffer->getBufferOccupancy() + (bytes - bytes_in_queue));
-            } else {
-                switch_buffer->setBufferOccupancy(
-                        switch_buffer->getBufferOccupancy() - (bytes_in_queue - bytes));
+        uint32_t getQueueLimitBytes(QueuePriority prio) const {
+            switch (prio) {
+                case HIGH_QUEUE_PRIO:
+                    return alpha_prio * switch_buffer->getFreeSize();
+                case LOW_QUEUE_PRIO:
+                    return alpha_back * switch_buffer->getFreeSize();
+                default:
+                    throw std::runtime_error("Wrong priority");
             }
-            bytes_in_queue = bytes;
         }
+
+        void drop(Packet *packet) override;
+        void enque(Packet *packet) override;
+        Packet* deque() override;
         
-        virtual void enque(Packet *packet) override;
-        virtual Packet* deque() override;
-        
-        virtual void check_unfair_drops() const;
+        void check_unfair_drops(Packet* packet) const;
         
     protected:
         uint32_t alpha;
         uint32_t alpha_prio;
         uint32_t alpha_back;
-        uint32_t bytes_in_queue;
+
+        uint32_t bytes_in_queue; // this should be the total of high and low prios
+        uint32_t bytes_in_queue_prio; // high prio bytes
+        uint32_t bytes_in_queue_back; // low prio bytes
+
+        std::priority_queue<Packet*> packet_queue;
         std::shared_ptr<SwitchBuffer> switch_buffer;
 };
 

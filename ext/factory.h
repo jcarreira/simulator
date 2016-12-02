@@ -24,7 +24,8 @@ enum FlowType {
     CAPABILITY_FLOW = 112,
     MAGIC_FLOW = 113,
     FASTPASS_FLOW = 114,
-    IDEAL_FLOW = 120
+    IDEAL_FLOW = 120,
+    UDP_FLOW = 121
 };
 
 

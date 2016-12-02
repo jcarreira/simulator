@@ -278,7 +278,7 @@ uint32_t Flow::get_priority(uint32_t seq) {
 
 void Flow::increase_cwnd() {
     cwnd_mss += 1;
-    if (mxa_cwnd && cwnd_mss > max_cwnd) {
+    if (max_cwnd && cwnd_mss > max_cwnd) {
         throw std::runtime_error("Capping congestion window size");
         cwnd_mss = max_cwnd;
     }
@@ -330,7 +330,7 @@ void UDPFlow::send_pending_data() {
 }
 
 Packet *UDPFlow::send(uint32_t seq) {
-    Flow::send(seq); // should be fine
+    return Flow::send(seq); // should be fine
 }
 
 void UDPFlow::receive_data_pkt(Packet* p) {

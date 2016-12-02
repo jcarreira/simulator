@@ -11,11 +11,6 @@ class Probe;
 class RetxTimeoutEvent;
 class FlowProcessingEvent;
 
-enum QueuePriority {
-    LOW_QUEUE_PRIO = 0,
-    HIGH_QUEUE_PRIO = 1
-};
-
 class Flow {
     public:
         Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d);
