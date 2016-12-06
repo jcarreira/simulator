@@ -38,7 +38,7 @@ CoreSwitch::CoreSwitch(uint32_t id, uint32_t nq, double rate, uint32_t type) : S
     
     std::cerr << "Creating core switch id: " << id << std::endl;
 
-    if (params.use_shared_queue == 1) {
+    if (params.use_shared_buffer == 1) {
         buffer = std::make_shared<SwitchBuffer>(params.queue_size);
     } else {
         buffer = nullptr;
@@ -62,7 +62,7 @@ AggSwitch::AggSwitch(
     std::cerr << "Creating aggregate switch id: " << id << std::endl;
 
     std::shared_ptr<SwitchBuffer> buffer(
-            params.use_shared_queue ? new SwitchBuffer(params.queue_size)
+            params.use_shared_buffer ? new SwitchBuffer(params.queue_size)
                                     : nullptr);
 
     // hosts queues

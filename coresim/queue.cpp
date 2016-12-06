@@ -271,9 +271,9 @@ void SharedQueue::drop(Packet *packet) {
 
     Queue::drop(packet);
 
-    if (getBytesInQueue() == 0) {
-        switch_buffer->decActiveQueues();
-    }
+//    if (getBytesInQueue() == 0) {
+//        switch_buffer->decActiveQueues();
+//    }
 }
 
 void SharedQueue::enque(Packet *packet) {
@@ -305,6 +305,19 @@ Packet* SharedQueue::deque() {
     return p;
 }
 
+struct packet_comparator {
+    bool operator()(Packet* p1, Packet* p2) const {
+        if (p1->pkt_priority != p2->pkt_priority) {
+            // lower prio value means higher priority packet
+            return p1->pkt_priority > p2->pkt_priority;
+        } else {
+            // if both packets are in the same queue
+            // the one that goes has been waiting longer
+            return p1->last_enque_time > p2->last_enque_time;
+        }
+
+    }
+};
 
 MultiSharedQueue::MultiSharedQueue(uint32_t id, double rate, std::shared_ptr<SwitchBuffer> buffer, int location) :
     Queue(id, rate, location),
@@ -319,9 +332,18 @@ MultiSharedQueue::MultiSharedQueue(uint32_t id, double rate, std::shared_ptr<Swi
         << " propagation_delay: " << propagation_delay
         << " location: " << location
         << '\n';
+
+    packet_queue.reset(new std::priority_queue<Packet*, std::vector<Packet*>,
+                 std::function<bool(Packet*, Packet*)> >(packet_comparator()));
+
 }
 
 void MultiSharedQueue::enque(Packet *packet) {
+   
+#ifdef QUEUE_DEBUG 
+    std::cerr << "Enqueue packet size: " << packet->size << std::endl;
+    std::cerr << "prio: " << packet->pkt_priority << std::endl;
+#endif
 
     packet->last_enque_time = get_current_time();
 
@@ -331,13 +353,21 @@ void MultiSharedQueue::enque(Packet *packet) {
 
     // if we have space we enqueue it
     if (bytes_in_queue_prio + packet->size <=
-            getQueueLimitBytes(packet->flow->queue_priority)) {
-        packet_queue.push(packet);
+            getQueueLimitBytes(packet->pkt_priority)) {
+        packet_queue->push(packet);
         setBytesInQueue(getBytesInQueue() + packet->size);
 
         switch_buffer->setBufferOccupancy(switch_buffer->getBufferOccupancy() + packet->size);
 
-        if (packet->flow->queue_priority == HIGH_QUEUE_PRIO) {
+        // if queue was empty we have to update number of active queues 
+        if ( (packet->pkt_priority == HIGH_PRIO &&
+                    bytes_in_queue_prio == 0) ||
+                (packet->pkt_priority == LOW_PRIO &&
+                 bytes_in_queue_back == 0)) {
+            switch_buffer->incActiveQueues();
+        }
+
+        if (packet->pkt_priority == HIGH_PRIO) {
             bytes_in_queue_prio += packet->size;
         } else {
             bytes_in_queue_back += packet->size;
@@ -348,14 +378,6 @@ void MultiSharedQueue::enque(Packet *packet) {
         drop(packet);
     }
    
-   // if queue was empty we have to update number of active queues 
-    if ( (packet->flow->queue_priority == HIGH_QUEUE_PRIO &&
-            bytes_in_queue_prio == 0) ||
-            (packet->flow->queue_priority != HIGH_QUEUE_PRIO &&
-             bytes_in_queue_back == 0)) {
-        switch_buffer->incActiveQueues();
-    }
-
     assert(bytes_in_queue == bytes_in_queue_back + bytes_in_queue_prio);
     log_queue_utilization();
 }
@@ -363,21 +385,25 @@ void MultiSharedQueue::enque(Packet *packet) {
 void MultiSharedQueue::check_unfair_drops(Packet* packet) const {
     // increment number of unfair drops if the number of bytes in the queue
     // is unfairly small
-    if (getBytesInQueue(packet->flow->queue_priority) <
+    if (getBytesInQueue(packet->pkt_priority) <
             switch_buffer->getBufferSize() / switch_buffer->getActiveQueues()) {
         unfair_drops++;
     }
 }
 
 void MultiSharedQueue::drop(Packet *packet) {
-#ifdef DEBUG
+#ifdef QUEUE_DEBUG 
     std::cerr << "WARNING: Dropping packet. id: " << id 
         << " label: " << src->getLabel()
-        << " queue limit_bytes: " << getQueueLimitBytes()
         << " bytes_in_queue: " << getBytesInQueue()
+        << " bytes_in_queue_prio: " << bytes_in_queue_prio
+        << " bytes_in_queue_back: " << bytes_in_queue_back
+        << " packet prio: " << packet->pkt_priority
         << " buffer size: " << switch_buffer->getBufferSize()
         << " buffer occupancy: " << switch_buffer->getBufferOccupancy()
-        << " alpha: " << alpha
+        << " alpha_prio: " << alpha_prio
+        << " alpha_back: " << alpha_back
+        << " active queues: " << switch_buffer->getActiveQueues()
         << std::endl;
 #endif
 
@@ -391,38 +417,49 @@ void MultiSharedQueue::drop(Packet *packet) {
 
 Packet* MultiSharedQueue::deque() {
 
-    if (bytes_in_queue)
+    if (!bytes_in_queue)
         return nullptr;
         
-    Packet *p = packet_queue.top();
+    Packet *p = packet_queue->top();
+
+#ifdef QUEUE_DEBUG 
+    std::cerr << "dequeing queue # size: " << packet_queue->size() << std::endl;
+    std::cerr << "bytes_in_queue_prio: " << bytes_in_queue_prio << std::endl;
+    std::cerr << "bytes_in_queue_back: " << bytes_in_queue_back << std::endl;
+    std::cerr << "packet_dequeue prio: " << p->pkt_priority << std::endl;
+#endif
+
+    if (p->pkt_priority == LOW_PRIO &&
+            bytes_in_queue_prio > 0) {
+        throw std::runtime_error("Error in dequeueing");
+    }
+
     p->total_queuing_delay += get_current_time() - p->last_enque_time;
 
-    packet_queue.pop();
+    packet_queue->pop();
     setBytesInQueue(getBytesInQueue() - p->size);
     p_departures += 1;
     b_departures += p->size;
 
-    // one queue zerod out so one less active queue
-    if ( (p->flow->queue_priority == HIGH_QUEUE_PRIO &&
-            bytes_in_queue_prio == 0) ||
-            (p->flow->queue_priority != HIGH_QUEUE_PRIO &&
-             bytes_in_queue_back == 0)) {
-        switch_buffer->decActiveQueues();
-    }
-
     // update bytes count for specific priority
-    if (p->flow->queue_priority == HIGH_QUEUE_PRIO) {
+    if (p->pkt_priority == HIGH_PRIO) {
         if (bytes_in_queue_prio < p->size)
             throw std::runtime_error("fail");
         
         bytes_in_queue_prio -= p->size;
-    } else if(p->flow->queue_priority == LOW_QUEUE_PRIO) {
-        switch_buffer->decActiveQueues();
-        
+    } else if(p->pkt_priority == LOW_PRIO) {
         if (bytes_in_queue_back < p->size)
             throw std::runtime_error("fail");
 
         bytes_in_queue_back -= p->size;
+    }
+    
+    // one queue zerod out so one less active queue
+    if ( (p->pkt_priority == HIGH_PRIO &&
+            bytes_in_queue_prio == 0) ||
+            (p->pkt_priority == LOW_PRIO &&
+             bytes_in_queue_back == 0)) {
+        switch_buffer->decActiveQueues();
     }
            
     // update switch buffer occupancy 
@@ -433,12 +470,23 @@ Packet* MultiSharedQueue::deque() {
     return p;
 }
 
-uint32_t MultiSharedQueue::getBytesInQueue(QueuePriority prio) const {
+uint32_t MultiSharedQueue::getBytesInQueue(uint32_t prio) const {
     switch (prio) {
-        case HIGH_QUEUE_PRIO:
+        case HIGH_PRIO:
             return bytes_in_queue_prio;
-        case LOW_QUEUE_PRIO:
+        case LOW_PRIO:
             return bytes_in_queue_back;
+        default:
+            throw std::runtime_error("Wrong priority");
+    }
+}
+        
+uint32_t MultiSharedQueue::getQueueLimitBytes(uint32_t prio) const { //XXX hack
+    switch (prio) {
+        case HIGH_PRIO:
+            return alpha_prio * switch_buffer->getFreeSize();
+        case LOW_PRIO:
+            return alpha_back * switch_buffer->getFreeSize();
         default:
             throw std::runtime_error("Wrong priority");
     }

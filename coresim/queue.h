@@ -9,6 +9,7 @@
 #include <iostream>
 #include <queue>
 #include <cassert>
+#include <functional>
 
 class Node;
 class Packet;
@@ -16,11 +17,6 @@ class Event;
 
 class QueueProcessingEvent;
 class PacketPropagationEvent;
-
-enum QueuePriority {
-    LOW_QUEUE_PRIO = 0,
-    HIGH_QUEUE_PRIO = 1
-};
 
 class Queue {
     public:
@@ -153,7 +149,7 @@ public:
     }
     
     virtual void incActiveQueues() {
-        if (num_active_queues > 20)
+        if (num_active_queues > 40)
             throw std::runtime_error("too much incActiveQueues");
         num_active_queues++;
     }
@@ -238,29 +234,24 @@ class MultiSharedQueue : public Queue {
         // XXX this depends on the type of packet
         // because alpha depends on the type of packet
         virtual uint32_t getQueueLimitBytes() const override {
-            throw std::runtime_error("we shouldnt use this. big hack.");
+            throw std::runtime_error("getQueueLimitBytes we shouldnt use this. big hack.");
+        }
+        
+        void setBytesInQueue(uint32_t bytes) override {
+            bytes_in_queue = bytes;
         }
 
         // bytes for specific priority
-        uint32_t getBytesInQueue(QueuePriority prio) const;
+        uint32_t getBytesInQueue(uint32_t prio) const; // XXX hack
         uint32_t getBytesInQueue() const override {
             assert(bytes_in_queue == bytes_in_queue_prio + bytes_in_queue_back);
             return bytes_in_queue;
         }
-        uint32_t getQueueLimitBytes(QueuePriority prio) const {
-            switch (prio) {
-                case HIGH_QUEUE_PRIO:
-                    return alpha_prio * switch_buffer->getFreeSize();
-                case LOW_QUEUE_PRIO:
-                    return alpha_back * switch_buffer->getFreeSize();
-                default:
-                    throw std::runtime_error("Wrong priority");
-            }
-        }
+        uint32_t getQueueLimitBytes(uint32_t prio) const; //XXX hack
 
         void drop(Packet *packet) override;
         void enque(Packet *packet) override;
-        Packet* deque() override;
+        virtual Packet *deque() override;
         
         void check_unfair_drops(Packet* packet) const;
         
@@ -273,7 +264,8 @@ class MultiSharedQueue : public Queue {
         uint32_t bytes_in_queue_prio; // high prio bytes
         uint32_t bytes_in_queue_back; // low prio bytes
 
-        std::priority_queue<Packet*> packet_queue;
+        std::unique_ptr<std::priority_queue<Packet*, std::vector<Packet*>,
+            std::function<bool(Packet*, Packet*)> > > packet_queue;
         std::shared_ptr<SwitchBuffer> switch_buffer;
 };
 

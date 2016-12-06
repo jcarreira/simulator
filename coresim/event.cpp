@@ -104,10 +104,6 @@ void FlowCreationForInitializationEvent::process_event() {
     if (size != 0) {
         auto new_flow = Factory::get_flow(id, time, size, src, dst, params.flow_type);
     
-        if (params.flow_classes.use && size < params.flow_classes.threshold) {
-            new_flow->queue_priority = HIGH_QUEUE_PRIO;
-        }
-        
         // schedule flow
         flows_to_schedule.push_back(new_flow);
     }
@@ -464,7 +460,6 @@ void FlowFinishedEvent::process_event() {
             << flow->total_pkt_sent << "/" << (flow->size/flow->mss) << "//" << flow->received_count << " "
             << flow->data_pkt_drop << "/" << flow->ack_pkt_drop << "/" << flow->pkt_drop << " "
             << 1000000 * (flow->first_byte_send_time - flow->start_time) << " "
-            << flow->queue_priority
             << '\n';
 
         if (params.log_fct == 1) {
@@ -482,8 +477,6 @@ void FlowFinishedEvent::process_event() {
         if (flow->id % 10000 == 0) {
             std::cout << (*flow) << std::endl;
         }
-
-        std::cout << ss.str();
     }
 }
 

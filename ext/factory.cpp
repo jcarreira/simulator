@@ -42,6 +42,11 @@ Queue* Factory::get_queue(
                 throw std::runtime_error("Wrong buffer pointer for DROPTAIL_SHARED_QUEUE");
             }
             return new SharedQueue(id, rate, buffer, location);
+        case DROPTAIL_MULTI_SHARED_QUEUE:
+            if (nullptr == buffer.get()) {
+                throw std::runtime_error("Wrong buffer pointer for DROPTAIL_MULTI_SHARED_QUEUE");
+            }
+            return new MultiSharedQueue(id, rate, buffer, location);
         case DROPTAIL_QUEUE:
             return new StaticQueue(id, rate, queue_size, location);
         case PFABRIC_QUEUE:

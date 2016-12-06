@@ -32,6 +32,11 @@ FastpassTopology::FastpassTopology(
         delete *s;
     }
 
+    // check if flow classes config matches type of queue
+    if (params.flow_classes.use && params.queue_type != DROPTAIL_MULTI_SHARED_QUEUE) {
+        throw std::runtime_error("queue type doesn't match flow classes config");
+    }
+
     this->agg_switches.clear();
     this->core_switches.clear();
     this->switches.clear();

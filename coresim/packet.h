@@ -19,6 +19,11 @@
 
 class FastpassEpochSchedule;
 
+enum PacketPriority {
+    HIGH_PRIO = 0,
+    LOW_PRIO = 1
+};
+
 class Packet {
 
     public:
@@ -43,14 +48,7 @@ class Packet {
 
         int capa_data_seq;
 
-        // compare according to flows priority
-        bool operator<(const Packet& p) const {
-            if (flow->queue_priority != p.flow->queue_priority) {
-                return flow->queue_priority < p.flow->queue_priority;
-            } else {
-                return unique_id < p.unique_id;
-            }
-        }
+        PacketPriority pkt_priority;
 };
 
 class PlainAck : public Packet {

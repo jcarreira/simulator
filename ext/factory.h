@@ -12,7 +12,8 @@ enum QueueType {
     PFABRIC_QUEUE = 2,
     PROB_DROP_QUEUE = 4,
     DCTCP_QUEUE = 5,
-    DROPTAIL_SHARED_QUEUE = 100
+    DROPTAIL_SHARED_QUEUE = 100,
+    DROPTAIL_MULTI_SHARED_QUEUE = 101
 };
 
 /* Flow types */

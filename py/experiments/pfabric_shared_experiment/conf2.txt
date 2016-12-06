@@ -1,14 +1,14 @@
 init_cwnd: 10
 max_cwnd: 100000
-retx_timeout: 0.001
-propagation_delay: 0.0000002
-bandwidth: 40000000000.0
+retx_timeout: 0.005
+propagation_delay: 0
+bandwidth: 10000000000.0
 flow_type: 1
 num_flow: 60000
 flow_trace: ./CDF_aditya.txt
-cut_through: 1
+cut_through: 0
 mean_flow_size: 0
-load_balancing: 0
+load_balancing: 1
 big_switch: 0
 host_type: 1
 traffic_imbalance: 0
@@ -35,3 +35,5 @@ shared_queue.alpha: 2
 shared_queue.alpha_prio: 2
 shared_queue.alpha_back: 2
 preemptive_queue: 0
+log_fct: 1
+fct_filename: conf2.txt_fct
