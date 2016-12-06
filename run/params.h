@@ -75,7 +75,7 @@ class DCExpParams {
         uint32_t dctcp_mark_thresh;
         //uint32_t dctcp_delayed_ack_freq;
         
-        uint32_t use_shared_queue = 0;
+        uint32_t use_shared_buffer = 0;
         uint32_t agg_queue_size = 0;
         uint32_t core_queue_size = 0;
 
@@ -90,7 +90,7 @@ class DCExpParams {
         struct {
             double alpha_back = 1.0/2.0;
             double alpha_prio = 2;
-            double alpha = 1.0/32;
+            double alpha = 1.0;
             uint32_t track_queue = 10000000; // default is we don't track any queue
             uint32_t track_switch = 10000000; // default is we don't track any switch
             std::string log_file; // file with queue buffer occupancy

@@ -179,8 +179,8 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         else if (key == "core_queue_size") {
             lineStream >> params.core_queue_size;
         }
-        else if (key == "use_shared_queue") {
-            lineStream >> params.use_shared_queue;
+        else if (key == "use_shared_buffer") {
+            lineStream >> params.use_shared_buffer;
         }
         else if (key == "shared_queue.alpha") {
             lineStream >> params.shared_queue.alpha;

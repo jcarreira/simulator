@@ -192,7 +192,6 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
                 params.bandwidth, params.queue_type);
     } 
     else {
-        std::cout << "Building PFabric topology. Why?" << std::endl;
         topology = new PFabricTopology(params.num_hosts, params.num_agg_switches,
                 params.num_core_switches, params.bandwidth, params.queue_type);
     }
