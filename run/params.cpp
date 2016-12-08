@@ -7,6 +7,16 @@
 
 DCExpParams params;
 
+void remove_comment(std::string& line) {
+    auto pos = line.find('#');
+    if (pos != std::string::npos) {
+        auto it = line.begin() + pos - 1;
+        while (*it == ' ')
+            it--;
+        line.erase(it, line.end());
+    }
+}
+
 /* Read parameters from a config file */
 void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
     std::ifstream input(conf_filename);
@@ -23,6 +33,11 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         }
 
         lineStream >> key;
+
+        // we support comments now
+        if (key[0] == '#')
+            continue;
+
         assert(key[key.length()-1] == ':');
         key = key.substr(0, key.length()-1);
 
@@ -213,12 +228,17 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         else if (key == "fct_filename") {
             lineStream >> params.fct_filename;
         }
+        else if (key == "nw_stack_delay") {
+            lineStream >> params.nw_stack_delay;
+        }
         else {
             std::cerr << "Unknown conf param: " << key << " in file: " << conf_filename << std::endl;
             exit(-1);
         }
-
+        
         params.fastpass_epoch_time = 1500 * 8 * (FASTPASS_EPOCH_PKTS + 0.5) / params.bandwidth;
+
+        remove_comment(line);
 
         params.param_str.append(line);
         params.param_str.append(", ");
