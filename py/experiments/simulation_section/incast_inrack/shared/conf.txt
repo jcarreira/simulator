@@ -1,0 +1,42 @@
+init_cwnd: 10
+max_cwnd: 100000
+retx_timeout: 0.005                     # 5ms
+propagation_delay: 0                    # IGNORE. it's set in the code
+bandwidth: 10000000000.0                # 10Gbps
+flow_type: 1                            # TCP reno with SACK
+num_flow: 0                             # not used for this benchmark
+flow_trace: ./incast_rack_flow.txt
+use_flow_trace: 1
+cut_through: 0                          # we don't use cut through
+mean_flow_size: 0                       # IGNORE
+load_balancing: 1                       # IGNORE
+big_switch: 0                           # we don't use big switch
+host_type: 1                            # normal TCP host
+traffic_imbalance: 0                    # IGNORE
+load: 0.7                               # 70% load
+reauth_limit: 3                         # IGNORE
+magic_trans_slack: 1.1                  # IGNORE
+magic_delay_scheduling: 1               # IGNORE
+smooth_cdf: 1                           # IGNORE
+burst_at_beginning: 0                   # IGNORE
+ddc: 1                                  # ?
+ddc_type: 0                             # doesn't seem to matter to us. we ignore
+deadline: 0                             # IGNORE
+schedule_by_deadline: 0                 # IGNORE
+avg_deadline: 0.0001                    # IGNORE
+magic_inflate: 1                        # IGNORE
+interarrival_cdf: none                  # IGNORE
+num_host_types: 13                      # ?
+permutation_tm: 1                       # IGNORE in this scenario
+queue_type: 100                         # shared buffers drop tail queue
+use_shared_buffer: 1                    # We use shared buffers
+queue_size: 9437184                     # 9MB
+shared_queue.alpha: 1                   # alpha = 1
+shared_queue.alpha_prio: 1              # IGNORE. we only use 1 type of traffic
+shared_queue.alpha_back: 1              # IGNORE. we only use 1 type of traffic
+shared_queue.track_queue: 0             # we log queue 0
+shared_queue.track_switch: 0            # we logo switch 0
+shared_queue.log_file: buf_util.txt     # we log buffer occupancy
+preemptive_queue: 0                     # IGNORE
+log_fct: 1                              # we log the FCTs
+fct_filename: conf.txt_fct 
