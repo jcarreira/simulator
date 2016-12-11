@@ -93,7 +93,6 @@ void Flow::send_pending_data() {
 }
 
 Packet *Flow::send(uint32_t seq) {
-    Packet *p = nullptr;
 
     if (first_byte_send_time == -1)
         first_byte_send_time = get_current_time();
@@ -104,7 +103,7 @@ Packet *Flow::send(uint32_t seq) {
 #endif
 
     uint32_t priority = get_priority(seq);
-    p = new Packet(
+    Packet* p = new Packet(
             get_current_time() + params.nw_stack_delay,
             this, 
             seq, 
@@ -181,6 +180,7 @@ void Flow::receive(Packet *p) {
     if (p->type == ACK_PACKET) {
         Ack *a = (Ack *) p;
         total_ack_queueing_time += p->total_queuing_delay;
+
         receive_ack(a->seq_no, a->sack_list);
     }
     else if(p->type == NORMAL_PACKET) {
@@ -188,12 +188,13 @@ void Flow::receive(Packet *p) {
             this->first_byte_receive_time = get_current_time();
         }
         this->receive_data_pkt(p);
+
     }
     else {
         throw std::runtime_error("Wrong type of packet");
     }
-
     delete p;
+
 }
 
 void Flow::receive_data_pkt(Packet* p) {

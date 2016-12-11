@@ -53,6 +53,8 @@ PoissonFlowGenerator::PoissonFlowGenerator(uint32_t num_flows, Topology *topo, s
     
 void PoissonFlowGenerator::make_flows() {
     EmpiricalRandomVariable *nv_bytes;
+
+    // XXX this thing leaks
     if (params.smooth_cdf)
         nv_bytes = new EmpiricalRandomVariable(filename);
     else

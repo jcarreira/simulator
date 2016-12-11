@@ -29,6 +29,7 @@ class Packet {
     public:
         Packet(double sending_time, Flow *flow, uint32_t seq_no, uint32_t pf_priority,
                 uint32_t size, Host *src, Host *dst);
+        virtual ~Packet() = default;
 
         double sending_time;
         Flow *flow;

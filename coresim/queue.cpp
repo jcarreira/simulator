@@ -160,12 +160,12 @@ void Queue::drop(Packet *packet) {
     pkt_drop++;
     total_dropped_packets++;
     packet->flow->pkt_drop++;
+
     if(packet->seq_no < packet->flow->size){
         packet->flow->data_pkt_drop++;
     }
+
     if(packet->type == ACK_PACKET) {
-        //std::cout << "Dropping ack pkt" << std::endl;
-        //std::cout << *(Ack*)packet << std::endl;
         packet->flow->ack_pkt_drop++;
     }
 
@@ -279,10 +279,6 @@ void SharedQueue::drop(Packet *packet) {
     check_unfair_drops();
 
     Queue::drop(packet);
-
-//    if (getBytesInQueue() == 0) {
-//        switch_buffer->decActiveQueues();
-//    }
 }
 
 void SharedQueue::enque(Packet *packet) {
