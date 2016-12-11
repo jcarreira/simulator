@@ -39,6 +39,7 @@ extern uint32_t total_finished_flows;
 
 extern uint32_t backlog3;
 extern uint32_t backlog4;
+extern uint32_t total_dropped_packets;
 extern uint32_t duplicated_packets_received;
 extern uint32_t duplicated_packets;
 extern uint32_t injected_packets;
@@ -330,7 +331,8 @@ void LoggingEvent::process_event() {
         }
     }
 
-    uint32_t theoretical_injection_rate = params.bandwidth * params.num_hosts * params.load * 0.01 / ((params.mss + params.hdr_size) * 8);
+    uint32_t theoretical_injection_rate = params.bandwidth *
+        params.num_hosts * params.load * 0.01 / ((params.mss + params.hdr_size) * 8);
    
     uint32_t totalSentFromHosts = 0;
     for (auto& h : topology->hosts) {
@@ -373,6 +375,7 @@ void LoggingEvent::process_event() {
         << "total duplicated pkts: " << duplicated_packets_received << '\t'
         << "total useful pkts: " << total_completed_packets - duplicated_packets_received << '\t'
         << "total injected pkts: " << arrival_packets_count 
+        << "total dropped pkts: " << total_dropped_packets 
         << '\n'
         << "backlog1: " << num_outstanding_packets << '\t'
         << "est backlog: " << backlog4

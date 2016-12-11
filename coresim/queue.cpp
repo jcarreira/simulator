@@ -14,6 +14,7 @@ extern double get_current_time();
 extern void add_to_event_queue(Event* ev);
 extern uint32_t dead_packets;
 extern uint32_t unfair_drops;
+extern uint32_t total_dropped_packets;
 extern DCExpParams params;
 
 uint32_t Queue::instance_count = 0;
@@ -134,7 +135,6 @@ void Queue::enque(Packet *packet) {
         packets.push_back(packet);
         setBytesInQueue(getBytesInQueue() + packet->size);
     } else {
-        pkt_drop++;
         drop(packet);
     }
 
@@ -157,6 +157,8 @@ Packet *Queue::deque() {
 }
 
 void Queue::drop(Packet *packet) {
+    pkt_drop++;
+    total_dropped_packets++;
     packet->flow->pkt_drop++;
     if(packet->seq_no < packet->flow->size){
         packet->flow->data_pkt_drop++;
@@ -381,7 +383,6 @@ void MultiSharedQueue::enque(Packet *packet) {
         }
     } else {
         // otherwise drop
-        pkt_drop++;
         drop(packet);
     }
    

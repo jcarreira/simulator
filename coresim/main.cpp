@@ -45,6 +45,7 @@ uint32_t completed_packets = 0;
 uint32_t backlog3 = 0;
 uint32_t backlog4 = 0;
 uint32_t total_completed_packets = 0;
+uint32_t total_dropped_packets = 0;
 uint32_t sent_packets = 0;
 uint32_t unfair_drops = 0;
 
