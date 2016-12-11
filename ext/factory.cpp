@@ -107,6 +107,9 @@ Flow* Factory::get_flow(
         case IDEAL_FLOW:
             return new IdealFlow(id, start_time, size, src, dst);
             break;
+        case UDP_FLOW:
+            return new UDPFlow(id, start_time, size, src, dst);
+            break;
     }
     assert(false);
     return NULL;

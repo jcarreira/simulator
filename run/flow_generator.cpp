@@ -5,6 +5,7 @@
 // 6/15/2015 Akshay Narayan
 //
 
+#include <climits>
 #include "flow_generator.h"
 
 FlowGenerator::FlowGenerator(uint32_t num_flows, Topology *topo, std::string filename) {
@@ -102,6 +103,10 @@ FlowReader::FlowReader(uint32_t num_flows, Topology *topo, std::string filename)
 
 void FlowReader::make_flows() {
     std::ifstream input(filename);
+
+    if (!input.is_open())
+        throw std::runtime_error("Error opening file " + filename);
+
     std::string line;
 
     std::cout << "Running FlowReader::make_flows" << std::endl;
@@ -109,7 +114,8 @@ void FlowReader::make_flows() {
     while (std::getline(input, line)) {
         std::istringstream iss(line);
         double start_time, temp;
-        uint32_t size, s, d;
+        uint32_t s, d;
+        long long int size;
         uint32_t id;
         
         // <id> <start_time> blah blah <size in packets> blah blah <src> <dst>
@@ -117,9 +123,12 @@ void FlowReader::make_flows() {
         if (!(iss >> id >> start_time >> temp >> temp >> size >> temp >> temp >> s >> d)) {
             break;
         }
-        
-        size = (uint32_t) (params.mss * size);
-        assert(size > 0);
+
+        if (size < 0) {
+            size = INT_MAX;
+        } else {
+            size = params.mss * size;
+        }
 
         std::cout << "Specific Flow " << id << " " << start_time << " " << size << " " << s << " " << d << "\n";
         flows_to_schedule.push_back(
@@ -373,7 +382,8 @@ void PermutationTM::make_flows() {
     double lambda = params.bandwidth * params.load / (params.mean_flow_size * 8.0 / 1460 * 1500);
     //std::cout << "Lambda: " << lambda << std::endl;
 
-    auto *nv_intarr = new ExponentialRandomVariable(1.0 / lambda);
+    std::unique_ptr<ExponentialRandomVariable> nv_intarr(
+            new ExponentialRandomVariable(1.0 / lambda));
 
     std::set<uint32_t> dests;
     for (uint32_t i = 0; i < topo->hosts.size(); i++) {
@@ -390,7 +400,7 @@ void PermutationTM::make_flows() {
                 topo->hosts[i], 
                 topo->hosts[j],
                 nv_bytes, 
-                nv_intarr
+                nv_intarr.get()
             )
         );
     }

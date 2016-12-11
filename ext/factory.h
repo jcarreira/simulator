@@ -13,7 +13,7 @@ enum QueueType {
     PROB_DROP_QUEUE = 4,
     DCTCP_QUEUE = 5,
     DROPTAIL_SHARED_QUEUE = 100,
-    DROPTAIL_MULTI_SHARED_QUEUE = 101
+    DROPTAIL_MULTI_SHARED_QUEUE = 101 // 2 queues per port and priority
 };
 
 /* Flow types */

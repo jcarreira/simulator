@@ -222,14 +222,18 @@ void read_experiment_parameters(std::string conf_filename, uint32_t exp_type) {
         else if (key == "flow_classes.threshold") {
             lineStream >> params.flow_classes.threshold;
         }
-        else if (key == "log_fct") {
-            lineStream >> params.log_fct;
-        }
         else if (key == "fct_filename") {
             lineStream >> params.fct_filename;
         }
         else if (key == "nw_stack_delay") {
             lineStream >> params.nw_stack_delay;
+        }
+        // LOGGING
+        else if (key == "logging.enqueue") {
+            lineStream >> params.logging.enqueue;
+        }
+        else if (key == "logging.fct") {
+            lineStream >> params.logging.fct;
         }
         else {
             std::cerr << "Unknown conf param: " << key << " in file: " << conf_filename << std::endl;

@@ -30,7 +30,7 @@
 
 #include "../ext/ideal.h"
 
-extern Topology *topology;
+extern Topology* topology;
 extern double current_time;
 extern std::priority_queue<Event*, std::vector<Event*>, EventComparator> event_queue;
 extern std::deque<Flow*> flows_to_schedule;
@@ -198,28 +198,28 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
 
     uint32_t num_flows = params.num_flows_to_run;
 
-    FlowGenerator *fg;
+    std::unique_ptr<FlowGenerator> fg;
     if (params.use_flow_trace) {
         std::cout << "Generating traffic with FlowReader" << std::endl;
         std::cout << "Filename: " << params.cdf_or_flow_trace << std::endl;
-        fg = new FlowReader(num_flows, topology, params.cdf_or_flow_trace);
+        fg.reset(new FlowReader(num_flows, topology, params.cdf_or_flow_trace));
         fg->make_flows();
     }
     else if (params.interarrival_cdf != "none") {
         std::cout << "Generating traffic with CustomCDFFlowGenerator" << std::endl;
-        fg = new CustomCDFFlowGenerator(num_flows, topology,
-                params.cdf_or_flow_trace, params.interarrival_cdf);
+        fg.reset(new CustomCDFFlowGenerator(num_flows, topology,
+                params.cdf_or_flow_trace, params.interarrival_cdf));
         fg->make_flows();
     }
     else if (params.permutation_tm != 0) {
         std::cout << "Generating traffic with PermutationTM" << std::endl;
-        fg = new PermutationTM(num_flows, topology, params.cdf_or_flow_trace);
+        fg.reset(new PermutationTM(num_flows, topology, params.cdf_or_flow_trace));
         fg->make_flows();
     }
     else {
         if (params.traffic_imbalance < 0.01) {
             std::cout << "Generating flows wiht Poisson generator" << std::endl;
-            fg = new PoissonFlowGenerator(num_flows, topology, params.cdf_or_flow_trace);
+            fg.reset(new PoissonFlowGenerator(num_flows, topology, params.cdf_or_flow_trace));
             fg->make_flows();
         }
         else {
@@ -259,7 +259,11 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
         return;
     }
 
-    add_to_event_queue(new LoggingEvent((flows_sorted.front())->start_time));
+    if (flows_sorted.size() == 0)
+        throw std::runtime_error("0 flows!");
+
+    double start_time = flows_sorted.front()->start_time;
+    add_to_event_queue(new LoggingEvent(start_time));
 
     std::cout 
         << "Running " << num_flows 
@@ -309,7 +313,7 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
           first_send_time, slowdown_0_100, slowdown_100k_10m, slowdown_10m_inf,
           data_pkt_sent, parity_pkt_sent, data_pkt_drop, parity_pkt_drop, deadline;
 
-    std::map<unsigned, Stats*> slowdown_by_size, queuing_delay_by_size, capa_sent_by_size,
+    std::map<unsigned, std::unique_ptr<Stats>> slowdown_by_size, queuing_delay_by_size, capa_sent_by_size,
         fct_by_size, drop_rate_by_size, wait_time_by_size,
         first_hop_depart_by_size, last_hop_depart_by_size,
         capa_waste_by_size, log_slow_down_in_bytes;
@@ -334,19 +338,19 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
         double slow = 1000000.0 * f->flow_completion_time / topology->get_oracle_fct(f);
         int meet_deadline = f->deadline > f->finish_time?1:0;
         if (slowdown_by_size.find(f->size_in_pkt) == slowdown_by_size.end()) {
-            slowdown_by_size[f->size_in_pkt] = new Stats();
-            queuing_delay_by_size[f->size_in_pkt] = new Stats();
-            fct_by_size[f->size_in_pkt] = new Stats();
-            drop_rate_by_size[f->size_in_pkt] = new Stats();
-            wait_time_by_size[f->size_in_pkt] = new Stats();
-            capa_sent_by_size[f->size_in_pkt] = new Stats();
-            first_hop_depart_by_size[f->size_in_pkt] = new Stats();
-            last_hop_depart_by_size[f->size_in_pkt] = new Stats();
-            capa_waste_by_size[f->size_in_pkt] = new Stats();
+            slowdown_by_size[f->size_in_pkt].reset(new Stats());
+            queuing_delay_by_size[f->size_in_pkt].reset(new Stats());
+            fct_by_size[f->size_in_pkt].reset(new Stats());
+            drop_rate_by_size[f->size_in_pkt].reset(new Stats());
+            wait_time_by_size[f->size_in_pkt].reset(new Stats());
+            capa_sent_by_size[f->size_in_pkt].reset(new Stats());
+            first_hop_depart_by_size[f->size_in_pkt].reset(new Stats());
+            last_hop_depart_by_size[f->size_in_pkt].reset(new Stats());
+            capa_waste_by_size[f->size_in_pkt].reset(new Stats());
         }
         int log_flow_size_in_bytes = (int)log10(f->size);
         if (log_slow_down_in_bytes.find(log_flow_size_in_bytes) == log_slow_down_in_bytes.end()) {
-            log_slow_down_in_bytes[log_flow_size_in_bytes] = new Stats();
+            log_slow_down_in_bytes[log_flow_size_in_bytes].reset(new Stats());
         }
 
         log_slow_down_in_bytes[log_flow_size_in_bytes]->input_data(slow);
@@ -453,8 +457,8 @@ void run_experiment(int argc, char **argv, uint32_t exp_type) {
 
     std::cout << params.param_str << "\n";
 
-    //cleanup
-    
-    delete fg;
+    for (auto &f: flows_to_schedule) {
+        delete f;
+    }
 }
 

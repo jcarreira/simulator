@@ -15,7 +15,7 @@ class Flow {
     public:
         Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d);
 
-        ~Flow(); // Destructor
+        virtual ~Flow(); // Destructor
 
         virtual void start_flow();
         virtual void send_pending_data();
@@ -91,6 +91,9 @@ class Flow {
 };
 
 class UDPFlow : public Flow {
+    public:
+        UDPFlow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d);
+
         virtual void send_pending_data(); // change this
         virtual Packet *send(uint32_t seq); // need this
         void receive_data_pkt(Packet* p); // change this
@@ -108,8 +111,9 @@ class UDPFlow : public Flow {
         { throw std::runtime_error("dont call"); }
         virtual void cancel_retx_event() override
         { throw std::runtime_error("dont call"); }
-        virtual uint32_t get_priority(uint32_t seq) override
-        { throw std::runtime_error("dont call"); }
+        virtual uint32_t get_priority(uint32_t seq) override { 
+            return 1;
+        }
         virtual void increase_cwnd() override
         { throw std::runtime_error("dont call"); }
 

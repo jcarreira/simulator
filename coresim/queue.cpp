@@ -20,6 +20,8 @@ uint32_t Queue::instance_count = 0;
 
 std::unique_ptr<std::ofstream> Queue::log_file;
 
+//#define DEBUG
+
 /* Queues */
 Queue::Queue(uint32_t id, double rate, int location) {
     this->id = id;
@@ -104,7 +106,7 @@ void Queue::log_queue_utilization() const {
         }
         (*log_file) << get_current_time() << " " << id << " "
             << src->id << " "
-            << getBytesInQueue() << "\n";
+            << getBytesInQueue() << std::endl;
     } else {
 #ifdef DEBUG
         std::cerr << "Not logging"
@@ -119,6 +121,11 @@ void Queue::log_queue_utilization() const {
 void Queue::enque(Packet *packet) {
 
     packet->last_enque_time = get_current_time();
+
+    if (params.logging.enqueue) {
+        std::cout << "Enqueing queue_id: " << id
+            << " switch id: " << src->id << std::endl;
+    }
 
     // we log here the buffer occupancy
     p_arrivals += 1;

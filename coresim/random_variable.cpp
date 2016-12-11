@@ -118,9 +118,10 @@ int EmpiricalRandomVariable::loadCDF(std::string filename) {
     numEntry_ ++;
   }
   this->mean_flow_size = w_sum * 1460.0;
-  std::cout << "Mean flow size derived from CDF file:"
-      << this->mean_flow_size << " smooth = " << this->smooth << "\n";
-  //std::cout << "Number of lines in text file: " << numEntry_ << "\n";
+  std::cout << "Derived from CDF: " << std::endl
+      << " mean flow size (B): " << this->mean_flow_size << "\n"
+      << " mean flow size (MB): " << this->mean_flow_size/104/1024 << "\n"
+      << " smooth = " << this->smooth << "\n";
   if (myfile.is_open()) {
     myfile.close();
   }

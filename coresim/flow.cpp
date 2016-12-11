@@ -56,6 +56,11 @@ Flow::Flow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d) {
     this->first_byte_receive_time = -1;
     this->first_hop_departure = 0;
     this->last_hop_departure = 0;
+
+    this->total_queuing_time = 0;
+    this->flow_completion_time = 0;
+    this->received_count = 0;
+    this->deadline = 0;
 }
 
 Flow::~Flow() {
@@ -100,7 +105,7 @@ Packet *Flow::send(uint32_t seq) {
 
     uint32_t priority = get_priority(seq);
     p = new Packet(
-            get_current_time(), 
+            get_current_time() + params.nw_stack_delay,
             this, 
             seq, 
             priority, 
@@ -320,22 +325,39 @@ std::ostream& operator<< (std::ostream& os, const Flow& flow) {
     return os;
 }
 
+UDPFlow::UDPFlow(uint32_t id, double start_time, uint32_t size, Host *s, Host *d) :
+    Flow(id, start_time, size, s, d) {
+
+}
+
 void UDPFlow::send_pending_data() {
+#ifdef DEBUG
+    std::cout << "Sending data. size: " << size << std::endl;
+#endif
     // this seems to round flow sizes to packets    
     uint32_t seq = next_seq_no;
     while (seq + mss <= size) {
         send(seq);
         seq += mss;
     }
+        
+    std::cout << "send_pending_data: all data sent" << std::endl;
 }
 
 Packet *UDPFlow::send(uint32_t seq) {
+#ifdef DEBUG
+    std::cout << "Sending seq: " << seq << std::endl;
+#endif
     return Flow::send(seq); // should be fine
 }
 
 void UDPFlow::receive_data_pkt(Packet* p) {
     received_count++;
     total_queuing_time += p->total_queuing_delay;
+    
+#ifdef DEBUG
+    std::cout << "Receved packet: " << p->seq_no << std::endl;
+#endif
 
     // we just keep track of which files we have received
     // but this is really not necessary for UDP
@@ -369,8 +391,7 @@ void UDPFlow::receive(Packet *p) {
             this->first_byte_receive_time = get_current_time();
         }
         this->receive_data_pkt(p);
-    }
-    else {
+    } else {
         throw std::runtime_error("Wrong type of packet");
     }
 

@@ -79,7 +79,10 @@ class DCExpParams {
         uint32_t agg_queue_size = 0;
         uint32_t core_queue_size = 0;
 
-        uint32_t log_fct = 0;
+        // int the original version of this code there is no
+        // network stack overhead
+        double nw_stack_delay = 0;
+
         std::string fct_filename = "";
 
         struct {
@@ -91,8 +94,8 @@ class DCExpParams {
             double alpha_back = 1.0/2.0;
             double alpha_prio = 2;
             double alpha = 1.0;
-            uint32_t track_queue = 10000000; // default is we don't track any queue
-            uint32_t track_switch = 10000000; // default is we don't track any switch
+            uint32_t track_queue  = 90000000; // default is we don't track any queue
+            uint32_t track_switch = 90000000; // default is we don't track any switch
             std::string log_file; // file with queue buffer occupancy
         } shared_queue;
 
@@ -101,6 +104,10 @@ class DCExpParams {
             return size_in_byte * 8 / this->bandwidth;
         }
 
+        struct {
+            int enqueue = 0;
+            int fct     = 0;
+        } logging;
 };
 
 

@@ -266,7 +266,8 @@ void QueueProcessingEvent::process_event() {
                 << " td: " << td
                 << " pd: " << pd << std::endl;
 #endif
-            Event* arrival_evt = new PacketArrivalEvent(time + td + pd, packet);
+            Event* arrival_evt = new PacketArrivalEvent(time + td + pd + params.nw_stack_delay,
+                    packet);
             add_to_event_queue(arrival_evt);
             queue->getBusyEvents().push_back(arrival_evt);
         } else {
@@ -436,11 +437,13 @@ void FlowFinishedEvent::process_event() {
     this->flow->finish_time = get_current_time();
     this->flow->flow_completion_time = this->flow->finish_time - this->flow->start_time;
     total_finished_flows++;
-    auto slowdown = 1000000 * flow->flow_completion_time / topology->get_oracle_fct(flow);
+#if 0
+    //auto slowdown = 1000000 * flow->flow_completion_time / topology->get_oracle_fct(flow);
     if (slowdown < 1.0 && slowdown > 0.9999) {
         slowdown = 1.0;
     }
     assert(slowdown >= 1.0);
+#endif
 
     if (print_flow_result()) {
 
@@ -456,18 +459,18 @@ void FlowFinishedEvent::process_event() {
             << 1000000 * flow->finish_time << " "
             << 1000000.0 * flow->flow_completion_time << " "
             << topology->get_oracle_fct(flow) << " "
-            << slowdown << " "
+            //<< slowdown << " "
             << flow->total_pkt_sent << "/" << (flow->size/flow->mss) << "//" << flow->received_count << " "
             << flow->data_pkt_drop << "/" << flow->ack_pkt_drop << "/" << flow->pkt_drop << " "
             << 1000000 * (flow->first_byte_send_time - flow->start_time) << " "
             << '\n';
 
-        if (params.log_fct == 1) {
-            params.log_fct = 2;
+        if (params.logging.fct == 1) {
+            params.logging.fct = 2;
             open_fct_log(params.fct_filename);
         }
 
-        if (params.log_fct) {
+        if (params.logging.fct) {
             fct_fout << ss.str();
         }
 

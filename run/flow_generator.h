@@ -33,7 +33,6 @@
 
 #include "params.h"
 
-extern Topology *topology;
 extern double current_time;
 extern std::priority_queue<Event *, std::vector<Event *>, EventComparator> event_queue;
 extern std::deque<Flow *> flows_to_schedule;

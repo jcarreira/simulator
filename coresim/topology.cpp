@@ -132,8 +132,8 @@ Queue *PFabricTopology::get_next_hop(Packet *p, Queue *q) {
 
 
 double PFabricTopology::get_oracle_fct(Flow *f) {
+    
     int num_hops = 4;
-
     if (nodes_same_rack(f->src, f->dst)) {
         num_hops = 2;
     }
@@ -154,7 +154,7 @@ double PFabricTopology::get_oracle_fct(Flow *f) {
     }
     
     uint32_t np = ceil(f->size / params.mss); // TODO: Must be a multiple of 1460
-    double bandwidth = f->src->queue->getRate() / 1000000.0; // For us
+    double bandwidth = f->src->queue->getRate() / 1000000.0; // rate per us
     double transmission_delay = 0;
     if (params.cut_through) {
         transmission_delay = 
@@ -176,7 +176,8 @@ double PFabricTopology::get_oracle_fct(Flow *f) {
             ) * 8.0 / bandwidth;
         if (num_hops == 4) {
             //1 packet and 1 ack
-            transmission_delay += 2 * (params.mss + 2*params.hdr_size) * 8.0 / (4 * bandwidth);  //TODO: 4 * bw is not right.
+            transmission_delay += 2 * (params.mss + 2*params.hdr_size) * 8.0 / (4 * bandwidth); 
+            //TODO: 4 * bw is not right.
         }
     }
     return (propagation_delay + transmission_delay); //us
